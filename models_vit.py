@@ -66,17 +66,14 @@ def _get_vit_model(configs):
     outdim = configs.model.outdim
     
     priorstdout = configs.model.priorstdout if 'priorstdout' in configs.model.keys() else 0.0  
-    temppeak = configs.model.temppeak if 'temppeak' in configs.model.keys() else 1.0  
+    temppeak = configs.model.temppeak if 'temppeak' in configs.model.keys() else 0.5  
 
     # if modelname == 'vittp16r224':
     #     model = vit_bayes_tiny_patch16_224(pretrained=pretrained,infer=infer,num_classes=outdim)
     
     if modelname == 'vitbp16r224':
-        #model = vit_bayes_base_patch16_224(pretrained=pretrained,infer=infer,num_classes=outdim)
         model = vit_bayes_base_patch16_224(pretrained=pretrained,infer=infer,num_classes=outdim, priorstdout = priorstdout, temppeak=temppeak)
     
-    # if modelname == 'vitbp16r384':
-    #     model = vit_bayes_base_patch16_384(pretrained=pretrained,infer=infer,num_classes=outdim)   
     
     global_pool = model.global_pool 
     model.reset_classifier(num_classes=outdim, global_pool=global_pool)
@@ -98,21 +95,19 @@ def _create_vision_transformer_Bayes(variant, pretrained=False, infer='map', **k
 
     if infer == 'map':
         vit_cls = VisionTransformer_Map
+
     if infer == 'vbw':
         vit_cls = VisionTransformer_Bayes_W
+
     if infer == 'vbf':
         vit_cls = VisionTransformer_Bayes_F
-    # if infer == 'vbfwoj':
-    #     vit_cls = VisionTransformer_Bayes_F_WO_Jacobian
+
     if infer == 'vbfwojkde':
         vit_cls = VisionTransformer_Bayes_F_WO_Jacobian_KDE
 
     if infer == 'vbfwojkde2':
-        vit_cls = VisionTransformer_Bayes_F_WO_Jacobian_KDE_v2
+        vit_cls = VisionTransformer_Bayes_F_WO_Jacobian_KDE_ADVH
         
-    if infer == 'vbfwojkde2rpeak':
-        vit_cls = VisionTransformer_Bayes_F_WO_Jacobian_KDE_Randompeak        
-
 
     return build_model_with_cfg(
         vit_cls,
@@ -1484,9 +1479,6 @@ class VisionTransformer_Bayes_F(VisionTransformer):
 
 ## --------------------------------------------------------------------------------------------
 ## proposed models
-## + vit last layer vb on function space,
-## + without jacobian computation 
-## + feature space mh, 
 ## --------------------------------------------------------------------------------------------
 
 from torch.distributions.categorical import Categorical
@@ -1551,17 +1543,6 @@ class Hiddenfeature_Mixture_Module(nn.Module):
         self.static_mean_sum.data    +=  static_mean_sum.data
         self.static_cov_sum.data     +=  static_cov_sum.data
         
-        # ## update static params per batch
-        # self.static_cnt_sum.data       =  self.gamma*self.static_cnt_sum.data     +  (1-self.gamma)*static_cnt.data
-        # self.static_mean_sum.data      =  self.gamma*self.static_mean_sum.data    +  (1-self.gamma)*static_mean_sum.data
-        # self.static_cov_sum.data       =  self.gamma*self.static_cov_sum.data     +  (1-self.gamma)*static_cov_sum.data
-
-        #self.static_precision.data   = torch.linalg.inv( self.static_cov.data + eps_zitter*torch.eye(self.nfeature).to(y.device) )         
-        # # update static params per batch
-        # self.static_mean.data        =  self.gamma*self.static_mean.data        +  (1-self.gamma)*batch_static_mean.to(y.device)
-        # self.static_mean_shared.data =  self.gamma*self.static_mean_shared.data +  (1-self.gamma)*batch_static_mean_shared.to(y.device)        
-        # self.static_cov.data         =  self.gamma*self.static_cov.data         +  (1-self.gamma)*batch_static_cov_shared.to(y.device)
-        # self.static_precision.data   = torch.linalg.inv( self.static_cov.data + eps_zitter*torch.eye(self.nfeature).to(y.device) ) 
 
         return 
     
@@ -1809,7 +1790,6 @@ class VisionTransformer_Bayes_F_WO_Jacobian_KDE(VisionTransformer):
 
 
 
-    ## updated at 091823
     def compute_kde_pfuncdist_from_h(self, ht, param_q_mean, param_q_logstd , requires_grad=False ):
         #import torch.nn.functional as F
         h_mean, _, _ = self.mixture_module.get_static_params()
@@ -1837,12 +1817,6 @@ class VisionTransformer_Bayes_F_WO_Jacobian_KDE(VisionTransformer):
     
     
     
-    
-
-
-
-
-
 
 
     def forward_head_bayes(self, h_x, use_bayes: bool = False,  nfsample: int= 1, topk: int=3):
@@ -1859,8 +1833,7 @@ class VisionTransformer_Bayes_F_WO_Jacobian_KDE(VisionTransformer):
             logits_sample = qf_mean[None,...] + qf_diagstd[None,...]*torch.randn(nfsample,*qf_mean.shape).to(h_x.device)  #(nfsample,nb,nydim)
 
 
-            ## mh-based + conditional q(w^{L}) mask            
-
+            ## compute phat based on MPA approximation
             phat_nominator   =  qf_mean      
             nmh_distance     = -self.mixture_module.compute_mh_distance_batch(h_x,overclass=True, usenormalize = False)      
 
@@ -2052,7 +2025,7 @@ class VisionTransformer_Bayes_F_WO_Jacobian_KDE(VisionTransformer):
 ## -----------------------
 # revise  VisionTransformer_Bayes_F_WO_Jacobian_KDE
 ## -----------------------    
-class VisionTransformer_Bayes_F_WO_Jacobian_KDE_v2(VisionTransformer):
+class VisionTransformer_Bayes_F_WO_Jacobian_KDE_ADVH(VisionTransformer):
 
     """ Vision Transformer
     A PyTorch impl of : `An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale`
@@ -2117,35 +2090,35 @@ class VisionTransformer_Bayes_F_WO_Jacobian_KDE_v2(VisionTransformer):
             act_layer: MLP activation layer.
             block_fn: Transformer block layer.
         """
-        super(VisionTransformer_Bayes_F_WO_Jacobian_KDE_v2,self).__init__(img_size,
-                                                                                patch_size,
-                                                                                in_chans,
-                                                                                num_classes,
-                                                                                global_pool,
-                                                                                embed_dim,
-                                                                                depth,
-                                                                                num_heads,
-                                                                                mlp_ratio,
-                                                                                qkv_bias,
-                                                                                qk_norm,
-                                                                                init_values,
-                                                                                class_token,
-                                                                                no_embed_class,
-                                                                                pre_norm,
-                                                                                fc_norm,
-                                                                                drop_rate,
-                                                                                pos_drop_rate,
-                                                                                patch_drop_rate,
-                                                                                proj_drop_rate,
-                                                                                attn_drop_rate,
-                                                                                drop_path_rate,
-                                                                                weight_init,
-                                                                                embed_layer,
-                                                                                norm_layer,
-                                                                                act_layer,
-                                                                                block_fn,
-                                                                                mlp_layer,            
-                                                            )
+        super(VisionTransformer_Bayes_F_WO_Jacobian_KDE_ADVH,self).__init__(img_size,
+                                                                            patch_size,
+                                                                            in_chans,
+                                                                            num_classes,
+                                                                            global_pool,
+                                                                            embed_dim,
+                                                                            depth,
+                                                                            num_heads,
+                                                                            mlp_ratio,
+                                                                            qkv_bias,
+                                                                            qk_norm,
+                                                                            init_values,
+                                                                            class_token,
+                                                                            no_embed_class,
+                                                                            pre_norm,
+                                                                            fc_norm,
+                                                                            drop_rate,
+                                                                            pos_drop_rate,
+                                                                            patch_drop_rate,
+                                                                            proj_drop_rate,
+                                                                            attn_drop_rate,
+                                                                            drop_path_rate,
+                                                                            weight_init,
+                                                                            embed_layer,
+                                                                            norm_layer,
+                                                                            act_layer,
+                                                                            block_fn,
+                                                                            mlp_layer,            
+                                                                        )
 
         ## Classifier Head
         self.scalelogstd = scalelogstd
@@ -2211,11 +2184,9 @@ class VisionTransformer_Bayes_F_WO_Jacobian_KDE_v2(VisionTransformer):
     
     # computation checked     
     def compute_lastfuncdist_wo_jacobian(self, h , param_q_mean, param_q_logstd ):
-        #self.setup_functiondist() if not self.flag_setup else 1        
         assert len(param_q_logstd) <=2
         
         # compute f_mean
-        #h = self.deterministic_nn(x) 
         f_mean = self.func_model(param_q_mean, h ) 
 
         # comopute f_std
@@ -2236,7 +2207,6 @@ class VisionTransformer_Bayes_F_WO_Jacobian_KDE_v2(VisionTransformer):
 
     ## updated at 091823
     def compute_kde_pfuncdist_from_h(self, ht, param_q_mean, param_q_logstd , requires_grad=False ):
-        #import torch.nn.functional as F
         h_mean, _, _ = self.mixture_module.get_static_params()
         h_mean = h_mean.detach().clone()
 
@@ -2283,16 +2253,8 @@ class VisionTransformer_Bayes_F_WO_Jacobian_KDE_v2(VisionTransformer):
             logits_sample = qf_mean[None,...] + qf_diagstd[None,...]*torch.randn(nfsample,*qf_mean.shape).to(h_x.device)  #(nfsample,nb,nydim)
 
 
-            ## mh-based + conditional q(w^{L}) mask            
-            # phat_nominator   =  qf_mean      
-            # nmh_distance     = -self.priorstdout*self.mixture_module.compute_mh_distance_batch(h_x, overclass=True).detach().clone()       
-            # # phat_denominator =  torch.sqrt( 1 + torch.pi/8 * qf_diagcov_x.detach().clone()     )*nmh_distance    ## best performance     
-            # phat_denominator =  torch.sqrt( 1 + torch.pi/8 * nmh_distance )         
-            # post_logits_phat =  (phat_nominator / phat_denominator)
-
-
+            ## compute phat by MPA             
             phat_nominator   =  qf_mean      
-            # nmh_distance     = -self.mixture_module.compute_mh_distance_batch(h_x, overclass=True, usenormalize = True)      
             nmh_distance     = -self.mixture_module.compute_mh_distance_batch(h_x,overclass=True, usenormalize = False)      
 
             phat_denominator =  torch.sqrt( 1 + torch.pi/8 * nmh_distance )         
@@ -2317,27 +2279,6 @@ class VisionTransformer_Bayes_F_WO_Jacobian_KDE_v2(VisionTransformer):
         return logits_sample
     
     
-
-    
-    def forward_bayes(self, x, y=None,  use_bayes=False, nfsample: int= 1, topk: int=3):
-        h_x = self.forward_features_bayes(x)        
-        #if y is not None:
-        #    self.update_hidden_module_from_hx(h_x, y)
-        yhat = self.forward_head_bayes(h_x, use_bayes=use_bayes, nfsample=nfsample, topk=topk)
-        return yhat
-        
-    
-    def compute_logit_samples(self,x , y=None, use_bayes=True, nfsample=1, topk = 10, configs=None):
-        if use_bayes:
-            nfsample = configs.train.nfsample
-        else:
-            nfsample = 1
-        return self.forward_bayes(x , y=y, use_bayes=use_bayes,nfsample=nfsample, topk= topk)        
-        
-            
-
-
-
     ## mixture model 
     def update_hidden_module(self, x, y):
         #h = self.deterministic_nn(x)                
@@ -2349,14 +2290,24 @@ class VisionTransformer_Bayes_F_WO_Jacobian_KDE_v2(VisionTransformer):
         # update mixture feature
         self.mixture_module.update_layers_static_batch(h_x, y)
         return     
+    
 
-
-
-
-
-
- 
-    ## seems to be revised : self.compute_lastfuncdist_wo_jacobian seems to wrong  ---> revised
+    
+    def forward_bayes(self, x, y=None,  use_bayes=False, nfsample: int= 1, topk: int=3):
+        h_x = self.forward_features_bayes(x)        
+        yhat = self.forward_head_bayes(h_x, use_bayes=use_bayes, nfsample=nfsample, topk=topk)
+        return yhat
+        
+    
+    def compute_logit_samples(self,x , y=None, use_bayes=True, nfsample=1, topk = 10, configs=None):
+        if use_bayes:
+            nfsample = configs.train.nfsample
+        else:
+            nfsample = 1
+        return self.forward_bayes(x , y=y, use_bayes=use_bayes,nfsample=nfsample, topk= topk)        
+    
+    
+    
     def compute_fdist(self, xc ,p_params=None,configs=None):                
 
         # get hypparams from configs
@@ -2367,27 +2318,17 @@ class VisionTransformer_Bayes_F_WO_Jacobian_KDE_v2(VisionTransformer):
         # get last layer features
         hc = self.forward_features_bayes(xc)        
         
-        # compute "q" functional dist on context set        
+        # compute "q" function space dist on context set        
         param_q_mean, param_q_logstd        = list(self.head_q_mean.parameters()) ,  list(self.head_q_logstd)             
         qf_mean_xc , qf_diagcov_xc          = self.compute_lastfuncdist_wo_jacobian( hc, param_q_mean, param_q_logstd )   #without jacobian computation , ## seems to be revised   
         qf_std_xc                           = torch.sqrt(qf_diagcov_xc)
         
-        # compute "p" functional dist on context set
+        # compute "p" function space dist on context set
         if p_params is None:            
             pf_mean_xc =                1*torch.zeros_like(qf_mean_xc).to(xc.device)
             pf_std_xc  = priorstdout*torch.ones_like(qf_mean_xc).to(xc.device)            
         else:        
-            # param_p_mean, param_p_logstd          = p_params
             param_p_mean, param_p_logstd    = list(self.head_p_mean) ,  list(self.head_p_logstd)      
-
-            #breakpoint()
-            
-            ## swag diag            
-            ## failed diag swag for training            
-            # pf_mean_xc , pf_diagcov_xc     = self.compute_lastfuncdist_wo_jacobian( hc, param_p_mean, param_p_logstd )   #without jacobian computation         
-            # pf_std_xc                      = priorstdout*torch.sqrt(pf_diagcov_xc)            
-            # pf_mean_xc, pf_std_xc          = pf_mean_xc.detach().clone(), pf_std_xc.detach().clone() #.detach().clone()
-
             pf_mean_xc , pf_diagcov_xc, _  = self.compute_kde_pfuncdist_from_h( hc, param_p_mean, param_p_logstd , requires_grad=False )                    
             pf_std_xc                      = priorstdout*torch.sqrt(pf_diagcov_xc)            
  
@@ -2447,7 +2388,6 @@ class VisionTransformer_Bayes_F_WO_Jacobian_KDE_v2(VisionTransformer):
     
 
     def get_current_p_params(self):
-        #return [i_param.data.detach().clone() for i_param in self.stochastic_nn.parameters()]  
         return [i_param.data.detach().clone() for i_param in self.head_q_mean.parameters()]  
 
 
@@ -2466,7 +2406,6 @@ class VisionTransformer_Bayes_F_WO_Jacobian_KDE_v2(VisionTransformer):
     def predict_eval(self, x ,use_bayes=True ,topk=3, nfsample=1):        
         self.eval()        
         # compute function samples        
-        #logits_sample = self.forward_bayes(x , use_bayes =True, nfsample=nfsample,topk=topk)
         logits_sample = self.forward_bayes(x , use_bayes =use_bayes, nfsample=nfsample,topk=topk)
 
         pred = F.softmax(logits_sample,dim=-1) #(nfsample,nb,nout) 
@@ -2479,9 +2418,9 @@ class VisionTransformer_Bayes_F_WO_Jacobian_KDE_v2(VisionTransformer):
     
 
     
-    ##--------------------
-    ## build h_xc
-    ##--------------------
+    ##-------------------------------------------
+    ## build Adversarial hidden feature
+    ##-------------------------------------------
 
     def forward_bayes2(self, x, y=None,  use_bayes=False, nfsample: int= 1, topk: int=3):
         h_x = self.forward_features_bayes(x)        
@@ -2510,10 +2449,7 @@ class VisionTransformer_Bayes_F_WO_Jacobian_KDE_v2(VisionTransformer):
     
 
     
-    #def compute_fdist(self, xc ,p_params=None,configs=None):        
-    def compute_fdist_from_h(self, h_xc , p_params=None, configs=None):        
-            
-            
+    def compute_fdist_from_h(self, h_xc , p_params=None, configs=None):                                
         self.train()                
         
         
@@ -2528,15 +2464,13 @@ class VisionTransformer_Bayes_F_WO_Jacobian_KDE_v2(VisionTransformer):
         
         # compute "p" functional dist on context set
         if p_params is None:            
-            pf_mean_xc =                1*torch.zeros_like(qf_mean_xc).to(h_xc.device)
-            pf_std_xc  = priorstdout*torch.ones_like(qf_mean_xc).to(h_xc.device)            
+            pf_mean_xc                      = torch.zeros_like(qf_mean_xc).to(h_xc.device)
+            pf_std_xc                       = priorstdout*torch.ones_like(qf_mean_xc).to(h_xc.device)            
         else:        
-            # param_p_mean, param_p_logstd          = p_params
             param_p_mean, param_p_logstd    = list(self.head_p_mean) ,  list(self.head_p_logstd)      
 
             
             ## swag diag            
-            # pf_mean_xc , pf_diagcov_xc     = self.compute_lastfuncdist_wo_jacobian( h_xc, param_p_mean, param_p_logstd )   #without jacobian computation         
             pf_mean_xc , pf_diagcov_xc, _  = self.compute_kde_pfuncdist_from_h( h_xc, param_p_mean, param_p_logstd , requires_grad=False )  #without jacobian computation         
             pf_std_xc                      = priorstdout*torch.sqrt(pf_diagcov_xc)            
 

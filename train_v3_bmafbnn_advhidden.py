@@ -5,7 +5,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-#from collections.abc import Mapping
 from torchvision import datasets, transforms
 from attrdict import AttrDict
 
@@ -17,20 +16,9 @@ from time import gmtime, strftime
 
 from evaluate_v2 import get_acc,get_ll
 from datasets_v2 import setup_dataset
-
-#from models_shallownet import *
-from models_shallownet import *
-#from models_deepnet import *
-#from models_deepnet_v2 import *
 from models_deepnet_v3 import *
 
 
-# from train_base import (setup_randomness,
-#                         setup_savedir,
-#                         update_configs_by_args,
-#                         setup_model,
-#                         train_epochs,
-#                         eval_trainedmodel,                        
 #)
 
 from train_v3_base import (setup_randomness,
@@ -41,16 +29,6 @@ from train_v3_base import (setup_randomness,
                         eval_trainedmodel,                        
 )
 
-
-# def setup_randomness(random_seed= 1111):
-#     torch.manual_seed(random_seed)
-#     torch.cuda.manual_seed(random_seed)
-#     torch.cuda.manual_seed_all(random_seed) # if use multi-GPU
-#     torch.backends.cudnn.deterministic = True
-#     torch.backends.cudnn.benchmark = False
-#     np.random.seed(random_seed)
-#     random.seed(random_seed)
-#     return 
 
 
 #from torch.nn
@@ -66,10 +44,6 @@ omit_keys = ['nperiod','seeds','in_dim','out_dim','hidden_dim','nfreqprint','ntr
              'priorstdin','useregweight',
              'mixcontext','mixself',             
              ]
-#'priorstdin','priorstdout','usepretrain','useregweight','topk',
-# 'usepretrain',
-#,'nepochratio',
-
 
 def setup_savedir(configs:AttrDict, gentime:str, omit_keys =omit_keys ):
     
@@ -83,25 +57,19 @@ def setup_savedir(configs:AttrDict, gentime:str, omit_keys =omit_keys ):
                     tmp_name+='{}{}_'.format(jth_key,configs[ith_key][jth_key])
                 else:
                     pass
-            #print(tmp_name)
             full_name += tmp_name        
         return full_name[:-1]
     
-    #savedir = './results/{}/{}/'.format(configs.dataset.trainset,setup_savepath(configs))
     savedir = './results/{}_{}/{}/'.format(configs.dataset.trainset,configs.dataset.contextset,setup_savepath(configs))
     
     1 if os.path.isdir(savedir) else os.makedirs(savedir)
-    #savepath = savedir + 'seeds{}_gentime{}'.format(str(args.seeds),str(args.gentime)) + '.pth'
-    #savepath = savedir + 'seeds{}_gentime{}'.format(str(args.seeds),str(args.gentime)) + '.pth'        
     savepath = savedir + 'seeds{}_gentime{}'.format(str(configs.exp.seeds),str(gentime)) + '.pth'     
     
     print('savepath: {}'.format(savepath))           
     return savepath
 
 
-#def loss_fn(outs,targets,configs , model):
 def loss_fn(outs,targets,configs,use_bayes=False, beta_coldposterior=1e-6 ):
-    #loss_negll = nn.CrossEntropyLoss()(outs.logits,targets)          
        
     def negloss_elbo(outs,targets):
         #set loss
@@ -114,24 +82,10 @@ def loss_fn(outs,targets,configs,use_bayes=False, beta_coldposterior=1e-6 ):
         #breakpoint()
         return neglog_y_given_f.mean()
 
-    def negloss_iwae(outs,targets):
-        #set loss
-        loss_fun = nn.CrossEntropyLoss(reduction='none')            
-        #compute loss        
-        num_sample,nb,nout = outs.logits.shape
-        y_samples = targets.view(1,-1).repeat(num_sample,1) #(num_sample,nb)
-        neglog_y_given_f = loss_fun(outs.logits.reshape(num_sample*nb,-1), y_samples.reshape(-1))
-        log_y_given_f = -neglog_y_given_f.reshape(num_sample,nb)                             ## over samples
-        log_y_given_x = (torch.logsumexp(log_y_given_f,dim=0) - np.log(num_sample)).mean()   ## over batches     
-        
-        #breakpoint()        
-        return -log_y_given_x
-        
-    loss_fn = negloss_elbo if configs.train.losstype == 'elbo' else negloss_iwae            
-    #loss_fn = negloss_iwae if configs.train.losstype == 'elbo' else negloss_iwae    
-    loss_negll = loss_fn(outs,targets)            
-    # loss_reg = float(configs.train.reglambda)*outs.reg  if use_bayes else  beta_coldposterior*outs.reg    
 
+        
+    loss_fn = negloss_elbo       
+    loss_negll = loss_fn(outs,targets)            
     loss_reg = float(configs.train.reglambda)*outs.reg  if use_bayes else  0.0*outs.reg    
 
     loss = loss_negll + loss_reg   # -(loss_data - loss_kl) = loss_negdata + loss_kl
@@ -159,32 +113,7 @@ def fgsm_attack(image, data_grad ,  epsilon=0.1):
     return perturbed_image
 
 
-# def compute_loss_with_gradinput(x_copy, y, model, configs):
-#     logit_copy_samples = model.compute_logit_samples(x_copy.cuda(), use_bayes=False, configs=configs)                                 
-#     loss = F.cross_entropy( logit_copy_samples.view(np.prod(logit_copy_samples.shape[:2]),-1)  , y.cuda().view(-1)  )
-#     return loss
 
-## reference:  https://github.com/pytorch/functorch/blob/main/notebooks/colab/per_sample_grads_colab.ipynb
-def compute_loss_with_gradinput(x_copy, y_copy, model, configs):
-    # to make batch dim because model takes bath types of inputs, but vmap takes the inputs without batch 
-    #x_copy, y_copy = x_copy.unsqueeze(0), y_copy.unsqueeze(0)
-    #print('x_copy.shape:{}, y_copy.shape: {}'.format(x_copy.shape,y_copy.shape))
-    #breakpoint()      
-    x_copy  = x_copy.unsqueeze(0)
-    y_copy  = y_copy.unsqueeze(0)
-    
-    logit_copy_samples = model.compute_logit_samples(x_copy.cuda(), use_bayes=False, configs=configs)        
-    logit_copy_samples = logit_copy_samples.squeeze(dim=0)                
-          
-    #breakpoint()
-    #loss = F.cross_entropy( logit_copy_samples.view(np.prod(logit_copy_samples.shape[:2]),-1)  , y_copy.cuda().view(-1)  )
-    loss = F.cross_entropy( logit_copy_samples , y_copy  )
-
-    return loss
-
-
-ft_compute_grad = grad(compute_loss_with_gradinput)
-ft_compute_sample_grad = vmap(ft_compute_grad, in_dims=(0, 0, None, None))
 
 def  train_epochs_with_prior(trainloader,contextloader, model, optimizer, loss_fn, scheduler, configs=None, use_bayes=False, update_h=False):
     
@@ -193,72 +122,27 @@ def  train_epochs_with_prior(trainloader,contextloader, model, optimizer, loss_f
     for i, ((x, y),(xc,yc)) in enumerate(zip(trainloader,contextloader) ):    
         
         # compute loss         
-        #logit_samples = model.compute_logit_samples(x.cuda(), use_bayes=use_bayes, configs=configs)                                 
-        #logit_samples = model.compute_logit_samples(x.cuda(), y.cuda(), use_bayes=use_bayes, topk=configs.train.topk, configs=configs)                                 
-        #logit_samples = model.compute_logit_samples(x.cuda(), y.cuda(), topk=configs.train.topk, use_bayes=use_bayes, update_h = update_h, configs=configs)                                 
         logit_samples, h_x = model.compute_logit_samples_v2(x.cuda(), y.cuda(), topk=configs.train.topk, use_bayes=use_bayes, update_h = update_h, configs=configs)                                 
 
 
-        # compute sup kl
-        #if use_bayes:    
-        
+        # compute regularization         
         if use_bayes and (float(configs.train.reglambda) > 0.0) :                   
-            #breakpoint()
-            # if configs.train.mixcontext:
-            #     #alpha = .1*torch.rand(xc.shape[0]).view(-1,1,1,1)
-                
-            #     #beta_dist = Beta(.5,.5, validate_args=None)                
-            #     #alpha = beta_dist.sample((x.shape[0],)).view(-1,1,1,1)
-            #     ##xc = alpha*x + (1-alpha)*x                             
-                            
-            #     # #beta_dist = Beta(.5,.5, validate_args=None)                
-            #     # alpha = 0.5*torch.rand((x.shape[0],)).view(-1,1,1,1)
-            #     # xc    =  (1-alpha)* + alpha*xc             
-
-            #     alpha = configs.train.mixalpha*torch.rand(xc.shape[0]).view(-1,1,1,1)                
-            #     if configs.train.mixself:
-            #         xc = alpha*x[torch.randperm(x.shape[0])] + (1-alpha)*x
-            #     else:
-            #         xc = alpha*xc + (1-alpha)*x                
-                
-
-            ## build adversial examples as contextset
-            # x_copy = x.clone().detach().requires_grad_(True)
-            # logit_copy_samples = model.compute_logit_samples(x_copy.cuda(), use_bayes=False, configs=configs)            
-            # logit_copy_samples = logit_copy_samples.squeeze(dim=0)
-            # loss_tmp = F.cross_entropy( logit_copy_samples , y.cuda()  )
-            # loss_tmp.backward()            
-            # data_grad = x_copy.grad.data
-            # xc = fgsm_attack(x, data_grad, epsilon= configs.train.mixalpha)            
-
-
 
             ## build adversial examples as h_x_contextset
-            #breakpoint()
             h_x_copy, h_x_grad = model.compute_h_x_grad(h_x)
             h_xc               = fgsm_attack(h_x_copy, h_x_grad, epsilon= configs.train.mixalpha).detach().clone()                                           
             params_qf, params_pf, weight = model.compute_fdist_from_h(h_xc, topk=configs.train.topk, useswagparam=True) 
-            #model.zero_grad()
-            
-            #breakpoint()
 
             sup_kl = model.compute_sup_kl(params_qf, params_pf, weight=weight, Lowrank=False, Diag=True, nctset=configs.train.nctset )   
         else:
             sup_kl = torch.zeros(1).to(logit_samples.device)           
 
-
-        # acc_samples_list = [(i_sample.max(dim=-1)[1] == y.cuda()).sum()/128 for i_sample in logit_samples]
-        # acc_prior_list   = [(model.compute_fdist(x.cuda(), 10, useswagparam=True)[1][0].max(dim=-1)[1] == y.cuda()).sum()/128 ]
-        # print('acc_samples+prior_list: {}'.format(acc_samples_list+acc_prior_list))        
-        # breakpoint()
             
         outs = AttrDict()
         outs.logits = logit_samples
         outs.reg = sup_kl                               
         loss, loss_data, loss_reg = loss_fn(outs, y.cuda(), configs ,use_bayes=use_bayes)
 
-        #breakpoint()
-        # update param
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()    
@@ -314,15 +198,6 @@ def eval_trainedmodel(dataloader, model,q_params = None , use_bayes=False,topk= 
 
 
 
-def train_mixutre_module(trainloader, model, configs=None):
-    # for i, ((x, y),(xc,yc)) in enumerate(zip(trainloader,contextloader) ):            
-    for i, (x, y) in enumerate(trainloader ):            
-        #update mixture feature         
-        model.update_hidden_module(x.cuda(), y.cuda())
-                                         
-        #model.update_hidden_module(x.cuda(), y.cuda(), type_hdist = 'p')                                 
-
-    return 
 
 
 
@@ -339,7 +214,6 @@ def process_priorparamlist_as_swagdiag(prior_parameters_list,configs=None, eps_l
             ith_first_moment.data  += (1/nprior_model)*ith_current.data
             ith_second_moment.data += (1/nprior_model)*torch.pow(ith_current.data,2)
 
-    # updated_p_logstd = [torch.log( torch.sqrt(ith_second_moment - ith_first_moment**2 + eps_log) ).to(ith_first_moment) for ith_first_moment,ith_second_moment in zip(emp_first_moment,emp_second_moment)]
     updated_p_logstd = [torch.log( torch.sqrt( torch.clamp(ith_second_moment - ith_first_moment**2, min=eps_clamp)) ).to(ith_first_moment) for ith_first_moment,ith_second_moment in zip(emp_first_moment,emp_second_moment)]
     updated_p_mean   = emp_first_moment    
     
@@ -352,16 +226,7 @@ def process_priorparamlist_as_swagdiag(prior_parameters_list,configs=None, eps_l
 
 
 
-
-#tmp_logger_path = './training_log_fbnnsp2.txt'
-#tmp_logger_path = './training_log_fbnnsp3.txt'
-#tmp_logger_path = './training_log_fbnnsp4.txt'
-#tmp_logger_path = './training_log_fbnnsp5.txt'
-#tmp_logger_path = './training_log_fbnnsp6.txt'
-#tmp_logger_path = './training_log_fbnnsp7_kdeswagtemp_dpretrain.txt'
-#tmp_logger_path = './training_log_fbnnsp8_kdeswagtemp_dpretrain.txt' #retrain
-tmp_logger_path = './training_log_v3_bmafbnn_adv2.txt' #retrain
-
+tmp_logger_path = './training_log_v3_bmafbnn_advhidden.txt' 
 def write_msg(current_msg:str,withprint=True,tmp_logger_path=tmp_logger_path):
     if withprint:
         print(current_msg)
@@ -409,26 +274,12 @@ def main(args):
     epochs_for_priorconstruction = [i_tmp for i_tmp in tmp_list if i_tmp % period ==0]
 
 
-    # epochs_for_bayes, epochs_for_priorconstruction = 3, [1,2]
-    # print('epochs for bayes: {}, \t epochs_for_priorconstruction: {}'.format(epochs_for_bayes, epochs_for_priorconstruction))
-    
-        
-    #print('configs.train.usepretrain: {}'.format(configs.train.usepretrain))
-    
     
     # use pretrained params
     if configs.train.usepretrain:
-        #saved_path = 'results/cifar10_cifar100/pretrained_at_0.8nepoch_{}.pth'.format(configs.train.losstype)
         saved_path = 'results/cifar10_cifar100/pretrained_at_0.9nepoch_{}.pth'.format(configs.train.losstype)
-
-        #saved_path = 'results/cifar10_cifar100/pretrained_at_0.2nepoch_{}.pth'.format(configs.train.losstype)
-
         saved_file = torch.load(saved_path)
 
-    #     saved_configs = saved_file['configs']
-    #     #print(configs)
-    #     saved_configs.train.nfsample = 2
-    #     print('config.train {}'.format(configs.train))
 
 
         ## get model spec     
@@ -457,10 +308,6 @@ def main(args):
 
     ## not use pretrain, i.e., scratch training
     else :
-        
-        # # set randomness
-        # setup_randomness(random_seed = configs.exp.seeds)                         
-        
         # build model 
         model,optimizer,scheduler = setup_model(configs)
         
@@ -478,7 +325,6 @@ def main(args):
     
     
     
-    #for i in range(1,configs.train.nepoch+1):
     for i in range(start_epoch,end_epoch):
 
 
@@ -500,7 +346,6 @@ def main(args):
                         'updated_p_params' : updated_p_params,
                         'nepochs_pretrain' : epochs_for_bayes,
             }
-            #savepath_now = './results/cifar10_cifar100/pretrained_at_{}nepoch_{}.pth'.format( configs.train.nepochratio,configs.train.losstype )
             savepath_now = './results/{}_{}/pretrained_at_{}nepoch_{}.pth'.format(configs.dataset.trainset,
                                                                                              configs.dataset.contextset,
                                                                                              configs.train.nepochratio,
@@ -531,18 +376,13 @@ def main(args):
         if i in epochs_for_priorconstruction:
             # collect last layer params
             prior_param_list.append(model.get_current_p_params())
-            # collect last hidden feature
-            #train_mixutre_module(trainloader, model)
-            
-            #breakpoint()        
         
         
 
         nfreqprint = 5 if configs.train.usepretrain else configs.exp.nfreqprint        
-        #nfreqprint = 1 
+
         if (i % nfreqprint == 0) or (i==1):
-            
-            
+                        
             # evaluate model on training set
             outs_eval_val = eval_trainedmodel(valloader,
                                             model ,
@@ -567,9 +407,6 @@ def main(args):
             metrics.append((elapsed,outs_train.avg_loss,outs_train.avg_lossdata,outs_train.avg_lossreg, acc_val, nll_val))
             
             
-            # if val_acc < outs_eval_val.acc:
-            #     val_acc = outs_eval_val.acc            
-            
             #if opt_val_nll > nll_val:
             if (opt_val_nll > nll_val) and use_bayes:
             
@@ -583,8 +420,6 @@ def main(args):
                              'acc_val':acc_val,
                              'nll_val':nll_val,                             
                              'epochs':i,
-                             #'prior_param_list': prior_param_list,
-                             #'updated_p_params' : updated_p_params,
                 }
                 torch.save(save_dict, savepath)
                 msg += '\t saved'
@@ -605,21 +440,6 @@ def main(args):
 if __name__ == "__main__":    
     
     parser = argparse.ArgumentParser(description='exp_fbnn')    
-    # # default hyperparameters 
-    # parser.add_argument('--seeds',type=int, default=1111)    
-    # parser.add_argument('--nexp',type=int, default=1)   
-    # parser.add_argument('--nfreqprint',type=int, default=5)   
-    # parser.add_argument('--lr',type=float, default=.1)        
-    # parser.add_argument('--nepoch',type=int, default=200 , help='number of epochs')            
-        
-    # # varying hyperparameters
-    # parser.add_argument('--configs',type=str, default='abc')    
-    # parser.add_argument('--modelname',type=str, default='resnet20')    
-    # parser.add_argument('--reglambda',type=float, default=.1)    
-    # parser.add_argument('--scalelogstd',type=int, default=-8)  
-    # parser.add_argument('--nctset',type=int, default=0)        
-    # parser.add_argument('--nfsample',type=int, default=1, help='number of samples for forward pass')  
-    # parser.add_argument('--nsplitlayer',type=int, default=0, help='number of lastlayer')  
 
     parser.add_argument('--nexp',type=int, default=1)       
     parser.add_argument('--configs',type=str, default='abc')    
@@ -629,18 +449,15 @@ if __name__ == "__main__":
     parser.add_argument('--nctset',type=int, default=1)        
     parser.add_argument('--nfsample',type=int, default=1, help='number of samples for forward pass')  
     
-    #parser.add_argument('--userelreg', action=argparse.BooleanOptionalAction, default=False, help='relative reglambda for regularization') ##add recently 05/03
     parser.add_argument('--priorstdout',type=float, default=10.)
     parser.add_argument('--nepochratio',type=float, default=.5)
     parser.add_argument('--v',type=int, default='1')    
-    #parser.add_argument('--useregweight', action=argparse.BooleanOptionalAction, default=False, help='relative reglambda for regularization') ##add recently 05/03
     parser.add_argument('--topk',type=int, default=10)        
     parser.add_argument('--losstype',type=str, default='elbo')    
     parser.add_argument('--usepretrain', action=argparse.BooleanOptionalAction, default=False, help='use pretrain param')
     parser.add_argument('--mixcontext', action=argparse.BooleanOptionalAction, default=False, help='mix context set')
 
     parser.add_argument('--temppeak',type=float, default=1.)
-
     parser.add_argument('--mixalpha', type=float, default=.5)
     parser.add_argument('--mixself', action=argparse.BooleanOptionalAction, default=False, help='mix true')
     

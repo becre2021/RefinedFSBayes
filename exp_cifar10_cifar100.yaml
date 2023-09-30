@@ -4,68 +4,38 @@ dataset:
     ntrainset: 45000    
 
 model: 
-    modelname: fbcnn # cnn,fbcnn,fbcnnlast
+    modelname: 
     in_dim: 3
     out_dim: 10
     hidden_dim: None
     scalelogstd: -6
     
-    mhquantile: 0.05
-    mhnepochprior: 200
     priorstdin: 1
     priorstdout: 10
-    nmhlayer: 1    
-    betahyp: .1
     temppeak: 1.
 
     
 train:
-    #nepoch: 20
     nepoch: 200
-    #nepoch: 250
-
     nbatch: 128
     nwarmupepoch: 5
     lr: .1
-    #Tmax: 20    
     Tmax: 200
-    #Tmax: 250  
     nctset: 4
     reglambda: 1e-2
-    regcls: 1e-1
-    userelreg: False
     nfsample: 1
-    targetacc: .9
-    updateperiod: 1
     nepochratio: .5
     usepretrain: False
-    useregweight: True
-    topk: 10
+    useregweight: False
     losstype: elbo
 
+    topk: 10
     mixcontext: False
     mixalpha: 0.5
     mixself: False
 
 exp:
-    # nexp: 3
-    # seeds: 1111
-    # nfreqprint: 10
-    # v: 4
     nexp: 1
     seeds: 1111
     nfreqprint: 10
-    #nfreqprint: 2
-
-    #v: 6
-    #v: 7
-    #v: 8
-    #v: 9
-    #v: 11
-    #v: 12
-    #v: 13
-    #v: 14
-    #v: 15
-    # v: 16
-    v: 17
-    
+    v: 1

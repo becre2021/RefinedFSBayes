@@ -1,6 +1,14 @@
+
 import yaml
 import random
 import numpy as np
+import math
+import os
+import argparse
+import time
+from time import gmtime, strftime
+
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,29 +17,17 @@ from torch.autograd import Variable
 from torchvision import datasets, transforms
 from attrdict import AttrDict
 
-import os
-import argparse
-import time
-from time import gmtime, strftime
-
-from datasets_v2 import (setup_dataset,
-                         make_randommonochrome_xc,
-                         make_randommonochrome2_xc,                         
-                         make_rgb_xc
-                         )
-#from models_shallownet import *
-
-from models_shallownet import *
-#from models_deepnet import *
-#from models_deepnet_v2 import *
-from models_deepnet_v3 import *
-
-from evaluate_v2 import get_acc,get_ll
-
-import math
 from torch.optim.lr_scheduler import LambdaLR
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.optim.lr_scheduler import SequentialLR
+
+
+from datasets_v2 import setup_dataset
+from models_deepnet_v3 import *
+from evaluate_v2 import get_acc,get_ll
+
+
+
 
 def setup_randomness(random_seed= 1111):
     torch.manual_seed(random_seed)
@@ -54,10 +50,6 @@ omit_keys = ['nperiod','seeds','in_dim','out_dim','hidden_dim','nfreqprint','ntr
              'mixcontext',        
             ]
 
-
-             
-
-
 def setup_savedir(configs:AttrDict, gentime:str,omit_keys = omit_keys ):
     def setup_savepath(configs, omit_keys = omit_keys):
         #omit_keys = ['nperiod']
@@ -73,13 +65,8 @@ def setup_savedir(configs:AttrDict, gentime:str,omit_keys = omit_keys ):
             full_name += tmp_name        
         return full_name[:-1]
     
-    #savedir = './results/{}/{}/'.format(configs.dataset.trainset,setup_savepath(configs))
     savedir = './results/{}_{}/{}/'.format(configs.dataset.trainset,configs.dataset.contextset,setup_savepath(configs))
-
-    #savedir = './results/{}_smalltrain{}/{}/'.format(configs.dataset.trainset,smallsetratio,set_savepath(args,configs))
     1 if os.path.isdir(savedir) else os.makedirs(savedir)
-    #savepath = savedir + 'seeds{}_gentime{}'.format(str(args.seeds),str(args.gentime)) + '.pth'
-    #savepath = savedir + 'seeds{}_gentime{}'.format(str(args.seeds),str(args.gentime)) + '.pth'        
     savepath = savedir + 'seeds{}_gentime{}'.format(str(configs.exp.seeds),str(gentime)) + '.pth'     
     
     print('savepath: {}'.format(savepath))           
@@ -87,8 +74,6 @@ def setup_savedir(configs:AttrDict, gentime:str,omit_keys = omit_keys ):
 
 
 def update_configs_by_args(args):
-    # get configs
-    #with open("./config/{}.yaml".format(args.configs),'r') as f:
     with open("{}.yaml".format(args.configs),'r') as f:        
         configs = yaml.load(f,yaml.FullLoader)
                 
@@ -130,21 +115,12 @@ def setup_scheduler_waramupcosdecay(optimizer, nwarmupstep:int = 5, ncosinestep:
     return scheduler
 
 
-def setup_model(configs: AttrDict) -> nn.Module:
-    
-    #def setup_model(configs: AttrDict) -> nn.Module:
-    if configs.dataset.trainset in ['fmnist']:
-        return _setup_model_fmnist(configs)
+def setup_model(configs: AttrDict) -> nn.Module:    
     
     if configs.dataset.trainset in ['cifar10','cifar100']:
         return _setup_model_cifar(configs)
 
-
-
 def _setup_model_fmnist(configs: AttrDict) -> nn.Module:
-    if configs.model.modelname in model_shallow_list:
-        print('get shallow model: {}'.format(configs.model.modelname))
-        model = _setup_model_shallow(configs)
     if configs.model.modelname in model_deep_list:
         print('get deep model: {}'.format(configs.model.modelname))      
         model = _setup_model_deep(configs)
@@ -166,9 +142,7 @@ def _setup_model_fmnist(configs: AttrDict) -> nn.Module:
 
 
 def _setup_model_cifar(configs: AttrDict) -> nn.Module:
-    if configs.model.modelname in model_shallow_list:
-        print('get shallow model: {}'.format(configs.model.modelname))
-        model = _setup_model_shallow(configs)
+
     if configs.model.modelname in model_deep_list:
         print('get deep model: {}'.format(configs.model.modelname))      
         model = _setup_model_deep(configs)
@@ -181,11 +155,6 @@ def _setup_model_cifar(configs: AttrDict) -> nn.Module:
                                 weight_decay=5e-4,
                                 )
     
-    # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, 
-    #                                                        float(configs.train.Tmax),
-    #                                                        eta_min=1e-5, 
-    #                                                        last_epoch=- 1, verbose=False
-    #                                                        )
     
     try:
         nstep = configs.dataset.ntrainset //configs.train.nbatch + 1
@@ -204,17 +173,10 @@ def _setup_model_cifar(configs: AttrDict) -> nn.Module:
                                                 ncosinestep = ncosinestep, 
                                                 lr_warmup= float(configs.train.lr))    
     
-    #loss_fn = nn.CrossEntropyLoss()
-    #print(model)    
     return model,optimizer,scheduler
 
 
 
-
-
-## ------------------------------------------------------
-## loss function
-## ------------------------------------------------------
 
 def loss_fn(outs,targets,configs):
     loss_negll = nn.CrossEntropyLoss()(outs.logits,targets)          
@@ -228,35 +190,17 @@ def loss_fn(outs,targets,configs):
     
     return loss, loss_negll,loss_reg
 
+    
 
-
-
-        
-
-#def train_epochs(trainloader,contextloader, model, optimizer, loss_fn, p_params=None, configs=None):
 def train_epochs(trainloader,contextloader, model, optimizer, loss_fn, scheduler , p_params=None, configs=None):
     
-    #dataloader = trainloader
     context_iter = iter(contextloader)
     loss_list,lossdata_list,lossreg_list = [],[],[]
-    #for i, (images, targets) in enumerate(dataloader):    
-    
-    #for i, ((images, targets),(images_xc,targets_xc)) in enumerate(zip(trainloader,contextloader) ):    
-    for i, ((x, y),(xc,yc)) in enumerate(zip(trainloader,contextloader) ):    
 
-        
-        ## cifar100 with fmnist
-        if x.shape[1] != xc.shape[1]:
-            xc = make_rgb_xc(xc)
-            assert x.shape[1] == xc.shape[1]
 
-        ## make random monochrome            
-        if configs.dataset.contextset == 'monochrome':
-            xc = make_randommonochrome2_xc(xc)
-        
+    for i, ((x, y),(xc,yc)) in enumerate(zip(trainloader,contextloader) ):            
                 
         # predict class
-        #outs = model.predict_train(x.cuda(), xc.cuda())                                 
         outs = model.predict_train(x.cuda(), xc.cuda(), configs=configs)                                 
             
         # compute loss 
@@ -276,7 +220,6 @@ def train_epochs(trainloader,contextloader, model, optimizer, loss_fn, scheduler
         
         torch.cuda.empty_cache()        
     
-    #print(loss_list)
     outs = AttrDict()
     outs.avg_loss = np.array(loss_list).mean().round(3)
     outs.avg_lossdata = np.array(lossdata_list).mean().round(3)
@@ -312,8 +255,6 @@ def eval_trainedmodel(dataloader, model,q_params = None , nfsample=1):
 
 
 
-
-#tmp_logger_path = './training_log_basemap.txt'
 tmp_logger_path = './training_log_v3_basemap.txt'
 def write_msg(current_msg:str,withprint=True,tmp_logger_path=tmp_logger_path):
     if withprint:
@@ -350,24 +291,18 @@ def main(args):
     metrics = []
     for i in range(1,configs.train.nepoch+1):
         t = time.time()
-        #outs_train = train_epochs(trainloader,contextloader, model, optimizer, loss_fn, p_params=p_params, configs = configs)
         outs_train = train_epochs(trainloader,contextloader, model, optimizer, loss_fn, scheduler, p_params=p_params, configs = configs)
-        #print('current_epoch: {}, lastlr: {}, grouplr: {}'.format(i, scheduler.get_last_lr(),optimizer.param_groups[0]['lr'] ))
-
         elapsed = time.time() - t
-
-        #scheduler.step()
-
-        #with torch.no_grad():
-        #outs_eval_train = eval_trainedmodel(trainloader, model, q_params = list(model.parameters()) )
-        outs_eval_val = eval_trainedmodel(valloader, model , q_params = list(model.parameters()) , nfsample= configs.train.nfsample)
-        acc_val = get_acc(outs_eval_val.pred_list.cpu().data.numpy(),outs_eval_val.label_list.cpu().data.numpy())
-        nll_val = -get_ll(outs_eval_val.pred_list.cpu().data.numpy(),outs_eval_val.label_list.cpu().data.numpy())
 
 
         # evaluate model 
-        #if ((i % configs.exp.nfreqprint == 0) and (i>=configs.train.nepoch//2 )) or (i==1):
         if ( i % configs.exp.nfreqprint == 0 ) or (i==1):            
+
+            outs_eval_val = eval_trainedmodel(valloader, model , q_params = list(model.parameters()) , nfsample= configs.train.nfsample)
+            acc_val = get_acc(outs_eval_val.pred_list.cpu().data.numpy(),outs_eval_val.label_list.cpu().data.numpy())
+            nll_val = -get_ll(outs_eval_val.pred_list.cpu().data.numpy(),outs_eval_val.label_list.cpu().data.numpy())
+
+            
             msg = '[{}/{}], taken (sec): {:.3f}  : loss {:.3f}, \t lossdata {:.3f}, \t  lossreg {:.3f}, \t acc_val {:.3f}, \t nll_val {:.3f} '.format(i,configs.train.nepoch,elapsed,
                                                                                                                                    outs_train.avg_loss,
                                                                                                                                    outs_train.avg_lossdata,
@@ -378,8 +313,6 @@ def main(args):
             metrics.append((elapsed,outs_train.avg_loss,outs_train.avg_lossdata,outs_train.avg_lossreg, acc_val, nll_val))
             
             
-            # if val_acc < outs_eval_val.acc:
-            #     val_acc = outs_eval_val.acc            
             if opt_val_nll > nll_val:
                 opt_val_nll = nll_val 
                 
@@ -410,19 +343,6 @@ def main(args):
 if __name__ == "__main__":    
     
     parser = argparse.ArgumentParser(description='exp_fbnn')    
-
-    # parser.add_argument('--nbatch',type=int, default=128)            
-    # parser.add_argument('--nepoch',type=int, default=-1)    
-    # parser.add_argument('--gentime',type=str, default=1111)        
-    
-    # default hyperparameters 
-    #parser.add_argument('--seeds',type=int, default=1111)    
-    #parser.add_argument('--nexp',type=int, default=1)   
-    #parser.add_argument('--nfreqprint',type=int, default=5)   
-    #parser.add_argument('--lr',type=float, default=.1)        
-    #parser.add_argument('--nepoch',type=int, default=200 , help='number of epochs')            
-    #parser.add_argument('--nctset',type=int, default=0)        
-    #parser.add_argument('--nfsample',type=int, default=1, help='number of samples for forward pass')  
     
     
     # varying hyperparameters
@@ -444,7 +364,6 @@ if __name__ == "__main__":
     
     print('args: {} in main'.format(vars(args)))
 
-    #print(args.nepoch)
     
     for k in range(args.nexp):
         main(args)
@@ -453,5 +372,3 @@ if __name__ == "__main__":
         
 
 
-## resnet20 via spectral normalization
-# CUDA_VISIBLE_DEVICES=$DEVICES python3 train_base.py   --modelname res2net20  --configs ./exp_cifar10_cifar100  --nexp $nchosenexp --reglambda  1e-2 --seeds 1111 --v 91 ; #use jacobian directly 
