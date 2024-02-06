@@ -110,8 +110,8 @@ __all__ = [
 model_deep_list = ['resnet20','resnet18',                  
                    'b2resnet20','b2resnet18',
                    'fbresnet20','fbresnet18',
-                   'bmafbresnet20','bma2fbresnet20',
-                   'bmafbresnet18','bma2fbresnet18'                   
+                   'bmafbresnet20','bmafbresnet20v10'
+                   'bmafbresnet18','bmafbresnet18v10',                   
                   ]
 
 
@@ -178,7 +178,8 @@ def _setup_model_deep(configs: AttrDict) -> nn.Module:
                                     temppeak = configs.model.temppeak if 'temppeak' in configs.model.keys() else 0.5,
         )
 
-    if configs.model.modelname == 'bmafbresnet18': 
+    #if configs.model.modelname == 'bmafbresnet18': 
+    if configs.model.modelname == 'bmafbresnet18v10': 
         model = FBNN_ResNet_Pro_typeB(BasicBlock, 
                                     [2,2,2,2],
                                     in_dim=in_dim, 
@@ -187,6 +188,7 @@ def _setup_model_deep(configs: AttrDict) -> nn.Module:
                                     priorstdout = configs.model.priorstdout,
                                     temppeak = configs.model.temppeak if 'temppeak' in configs.model.keys() else 0.5,
         )
+
 
 
 
@@ -1200,7 +1202,14 @@ class Hiddenfeature_Mixture_Module(nn.Module):
         
         
         
-
+    # model = FBNN_ResNet_Pro_typeB(BasicBlock, 
+    # 184                                 [2,2,2,2],
+    # 185                                 in_dim=in_dim, 
+    # 186                                 out_dim=out_dim, 
+    # 187                                 scalelogstd=configs.model.scalelogstd,
+    # 188                                 priorstdout = configs.model.priorstdout,
+    # 189                                 temppeak = configs.model.temppeak if 'temppeak' in configs.model.keys() else 0.5,
+    # 190     )
 
 
 
@@ -1209,7 +1218,14 @@ class FBNN_ResNet_Pro_typeA(nn.Module):
 
     def __init__(self, block, num_blocks, in_dim=3, out_dim=10, scalelogstd = -8, priorstdin = 1.0, priorstdout = 10., temppeak=1. ):
                 
-        super(FBNN_ResNet_Pro_typeA, self).__init__( block, num_blocks, in_dim, out_dim, scalelogstd, priorstdin, priorstdout, temppeak)        
+        super(FBNN_ResNet_Pro_typeA,self).__init__()
+        
+
+        self.scalelogstd = scalelogstd        
+        self.priorstdin  = priorstdin
+        self.priorstdout = priorstdout        
+        self.temppeak    = temppeak
+
         
         self.in_planes = 64        
         conv1 = nn.Conv2d(in_dim, 64, kernel_size=3, stride=1, padding=1, bias=False)
@@ -1247,13 +1263,22 @@ class FBNN_ResNet_Pro_typeA(nn.Module):
         
         
         
-        self.hidden_adv_out = False 
     
+         
+         
+
         
-        print('upper_temp: {}'.format(self.upper_temp))
-         
-         
-         
+        
+        
+
+    def _make_layer(self, block, planes, num_blocks, stride, type='A'):        
+        strides = [stride] + [1]*(num_blocks-1)
+        layers = []
+        for stride in strides:
+            layers.append(block(self.in_planes, planes, stride, type))
+            self.in_planes = planes * block.expansion            
+        return nn.Sequential(*layers)
+                 
 
 
         
