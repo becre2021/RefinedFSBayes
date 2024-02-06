@@ -10,8 +10,9 @@ This is an implemenation for "Improving Function-Space Bayesian Neural networks 
 * models_deepnet_v3.py     : classification algorithms  
 * models_vit.py            : transfer learning algorithms for VIT 
 * models_regression_v3.py  : regression algorithms 
-
 * train_v3_bmafbnn_adv_hidden.py  : train R-FVI with informative priors for classifation
+
+* example_evaluate_trainedmodel.ipynb     : result of the trained model   
 
 
 
