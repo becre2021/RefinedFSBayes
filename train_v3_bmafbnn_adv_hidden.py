@@ -103,10 +103,7 @@ def fgsm_attack(image, data_grad ,  epsilon=0.1):
     sign_data_grad = data_grad.sign()
     # Create the perturbed image by adjusting each pixel of the input image
     perturbed_image = image + epsilon*sign_data_grad
-    # Adding clipping to maintain [0,1] range
 
-    # perturbed_image = torch.clamp(perturbed_image, 0, 1)
-    
     min,max = image.min(),image.max()
     perturbed_image = torch.clamp(perturbed_image, min, max)
 
@@ -129,9 +126,10 @@ def  train_epochs_with_prior(trainloader,contextloader, model, optimizer, loss_f
         if use_bayes and (float(configs.train.reglambda) > 0.0) :                   
 
             ## build adversial examples as h_x_contextset
-            h_x_copy, h_x_grad = model.compute_h_x_grad(h_x)
-            h_xc               = fgsm_attack(h_x_copy, h_x_grad, epsilon= configs.train.mixalpha).detach().clone()                                           
+            h_x_copy, h_x_grad           = model.compute_h_x_grad(h_x)
+            h_xc                         = fgsm_attack(h_x_copy, h_x_grad, epsilon= configs.train.mixalpha).detach().clone()                                           
             params_qf, params_pf, weight = model.compute_fdist_from_h(h_xc, topk=configs.train.topk, useswagparam=True) 
+
 
             sup_kl = model.compute_sup_kl(params_qf, params_pf, weight=weight, Lowrank=False, Diag=True, nctset=configs.train.nctset )   
         else:
@@ -269,15 +267,17 @@ def main(args):
         past_periods, period = 20 , 4
     if configs.train.paramtrace == 2:
         past_periods, period = 5 , 1    
+    if configs.train.paramtrace == 9:
+        past_periods, period = 10 , 2
         
-    tmp_list = np.arange( epochs_for_bayes - past_periods, epochs_for_bayes - 1) 
+    tmp_list = np.arange( epochs_for_bayes - past_periods, epochs_for_bayes ) 
     epochs_for_priorconstruction = [i_tmp for i_tmp in tmp_list if i_tmp % period ==0]
 
 
     
     # use pretrained params
     if configs.train.usepretrain:
-        saved_path = 'results/cifar10_cifar100/pretrained_at_0.9nepoch_{}.pth'.format(configs.train.losstype)
+        saved_path = 'results/cifar10_cifar100/pretrained_at_0.8nepoch_{}.pth'.format(configs.train.losstype)
         saved_file = torch.load(saved_path)
 
 
@@ -451,20 +451,17 @@ if __name__ == "__main__":
     
     parser.add_argument('--priorstdout',type=float, default=10.)
     parser.add_argument('--nepochratio',type=float, default=.5)
-    parser.add_argument('--v',type=int, default='1')    
     parser.add_argument('--topk',type=int, default=10)        
     parser.add_argument('--losstype',type=str, default='elbo')    
     parser.add_argument('--usepretrain', action=argparse.BooleanOptionalAction, default=False, help='use pretrain param')
-    parser.add_argument('--mixcontext', action=argparse.BooleanOptionalAction, default=False, help='mix context set')
 
     parser.add_argument('--temppeak',type=float, default=1.)
-    parser.add_argument('--mixalpha', type=float, default=.5)
-    parser.add_argument('--mixself', action=argparse.BooleanOptionalAction, default=False, help='mix true')
-    
+    parser.add_argument('--mixalpha', type=float, default=.5)    
     parser.add_argument('--paramtrace', type=int, default=1)
 
      
     parser.add_argument('--seeds',type=int, default=1111)        
+    parser.add_argument('--v',type=int, default='1')    
         
     args = parser.parse_args()
     args.gentime = strftime("%m%d%H%M",gmtime()) 

@@ -4,12 +4,11 @@ dataset:
     ntrainset: 45000    
 
 model: 
-    modelname: 
+    modelname: bmafbresnet18 
     in_dim: 3
     out_dim: 10
     hidden_dim: None
-    scalelogstd: -6
-    
+    scalelogstd: -6    
     priorstdin: 1
     priorstdout: 10
     temppeak: 1.
@@ -24,15 +23,14 @@ train:
     nctset: 4
     reglambda: 1e-2
     nfsample: 1
-    nepochratio: .5
+    updateperiod: 1
+    nepochratio: .8
     usepretrain: False
-    useregweight: False
-    losstype: elbo
-
     topk: 10
-    mixcontext: False
-    mixalpha: 0.5
-    mixself: False
+    losstype: elbo
+    mixalpha: 0.05
+
+    paramtrace: 9
 
 exp:
     nexp: 1

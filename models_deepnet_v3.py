@@ -178,7 +178,7 @@ def _setup_model_deep(configs: AttrDict) -> nn.Module:
                                     temppeak = configs.model.temppeak if 'temppeak' in configs.model.keys() else 0.5,
         )
 
-    if configs.model.modelname == 'bmafbresnet18':  ## Last layer without jacobian computation + update q(h)
+    if configs.model.modelname == 'bmafbresnet18': 
         model = FBNN_ResNet_Pro_typeB(BasicBlock, 
                                     [2,2,2,2],
                                     in_dim=in_dim, 
@@ -1068,14 +1068,24 @@ class FBNN_ResNet_typeB(FBNN_ResNet_typeA):
 ## Proposed Informative Function Space BNN Resnet (R-FVI)
 ## ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ 
 
+
+from torch.nn.utils import parameters_to_vector
+from torch.autograd import Variable
+        
+from functorch import vmap,grad,jacfwd,jacrev
+from functorch import make_functional, make_functional_with_buffers
+
+from torch.distributions.normal import Normal
+from torch.distributions.multivariate_normal import MultivariateNormal as MVN
+from torch.distributions.multivariate_normal import MultivariateNormal as MVN
+from torch.distributions.lowrank_multivariate_normal import LowRankMultivariateNormal as LowMVN
+from torch.distributions.kl import kl_divergence
+from attrdict import AttrDict
+
 from torch.distributions.categorical import Categorical
-# from torch.distributions.normal import Normal
-# from torch.distributions.multivariate_normal import MultivariateNormal as MVN
-# from torch.distributions.lowrank_multivariate_normal import LowRankMultivariateNormal as LowMVN
-# from torch.distributions.kl import kl_divergence
 
 
-## module of the penultimate hidden feature 
+
 class Hiddenfeature_Mixture_Module(nn.Module):     
     def __init__(self, nfeature: int, nlabel: int , usediagcov=False, gamma=0.99,eps_zitter=1e-4):
         super(Hiddenfeature_Mixture_Module,self).__init__()
@@ -1136,6 +1146,7 @@ class Hiddenfeature_Mixture_Module(nn.Module):
         self.static_mean_sum.data    +=  static_mean_sum.data
         self.static_cov_sum.data     +=  static_cov_sum.data
         
+
         return 
     
     def get_static_params(self):
@@ -1149,9 +1160,11 @@ class Hiddenfeature_Mixture_Module(nn.Module):
             precision_shared   = 1 / cov_shared
         else:
             precision_shared   = torch.linalg.inv( cov_shared + self.eps_zitter*torch.eye(self.nfeature).to(mean.device) )
+        # return mean,mean_shared,cov_shared,precision_shared
         return mean,mean_shared,precision_shared
         
-    
+        
+
       
     def compute_mh_distance_batch(self, h_feature , datatype = 'x' ,overclass=False, usenormalize=True):
         layers_mean, _ , layers_precision = self.get_static_params()
@@ -1168,7 +1181,7 @@ class Hiddenfeature_Mixture_Module(nn.Module):
             mh_distance_over_class  = -0.5*(squareterm_left_product*delta_h).sum(dim=-1)
 
         if usenormalize:
-            mh_distance_over_class = mh_distance_over_class / h_feature.size(-1)
+            mh_distance_over_class  = mh_distance_over_class / h_feature.size(-1)
         mh_distance, assigned_label = mh_distance_over_class.max(dim=-1)            
 
         if overclass:
@@ -1177,50 +1190,50 @@ class Hiddenfeature_Mixture_Module(nn.Module):
             return mh_distance
 
 
+    def get_nbd_idx(self, h_feature, topk=3):        
+        mh_dist_over_cls = self.compute_mh_distance_batch(h_feature , datatype = 'x' ,overclass=True)
+        mh_dist,mh_idx = torch.topk(mh_dist_over_cls,k=topk)
+        return mh_dist,mh_idx
         
         
         
         
         
+        
+
+
+
+
+
 class FBNN_ResNet_Pro_typeA(nn.Module):
 
-    def __init__(self, block, num_blocks, in_dim=3, out_dim=10, scalelogstd = -8, priorstdin = 1.0, priorstdout = 10. , temppeak=1.):
-
-        self.scalelogstd          = scalelogstd        
-        self.priorstdin           = priorstdin
-        self.priorstdout          = priorstdout       
-
-        self.temperature_distance = 1e0
-        self.temperature_peak = temppeak
-        self.temperature_soft = 1e0 
+    def __init__(self, block, num_blocks, in_dim=3, out_dim=10, scalelogstd = -8, priorstdin = 1.0, priorstdout = 10., temppeak=1. ):
+                
+        super(FBNN_ResNet_Pro_typeA, self).__init__( block, num_blocks, in_dim, out_dim, scalelogstd, priorstdin, priorstdout, temppeak)        
         
-        print('temppeak: {}'.format(self.temperature_peak))
-        
-        
-        super(FBNN_ResNet_Pro_typeA, self).__init__()
-        self.in_planes = 16        
-        conv1 = nn.Conv2d(in_dim, 16, kernel_size=3, stride=1, padding=1, bias=False)        
-        bn1 = BatchNorm2d_v2(16) 
-        layer1 = self._make_layer(block, 16, num_blocks[0], stride=1)
-        layer2 = self._make_layer(block, 32, num_blocks[1], stride=2)
-        layer3 = self._make_layer(block, 64, num_blocks[2], stride=2)                
-        linear = nn.Linear(64, out_dim)
-        mixture_module = Hiddenfeature_Mixture_Module(nfeature=64, nlabel=out_dim, usediagcov=True)
+        self.in_planes = 64        
+        conv1 = nn.Conv2d(in_dim, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        bn1 = nn.BatchNorm2d(64)
+        layer1 = self._make_layer(block, 64, num_blocks[0], stride=1,  type='B')
+        layer2 = self._make_layer(block, 128, num_blocks[1], stride=2, type='B')
+        layer3 = self._make_layer(block, 256, num_blocks[2], stride=2, type='B')
+        layer4 = self._make_layer(block, 512, num_blocks[3], stride=2, type='B')
+        linear = nn.Linear(512*block.expansion, out_dim)
+        mixture_module = Hiddenfeature_Mixture_Module(nfeature=512*block.expansion, nlabel=out_dim, usediagcov=True)
 
         deterministic_nn = [conv1,
                             bn1,
                             nn.ReLU(),
-                            layer1,                            
+                            layer1,
                             layer2, 
                             layer3,
+                            layer4,
                             nn.AdaptiveAvgPool2d(1),
                             nn.Flatten(start_dim=1),
-                           ]       
-        
+                           ]               
         stochastic_nn    = [
                             linear
                            ]       
-            
 
         self.deterministic_nn = nn.Sequential(*deterministic_nn)   
         self.stochastic_nn    = nn.Sequential(*stochastic_nn)                       
@@ -1230,8 +1243,17 @@ class FBNN_ResNet_Pro_typeA(nn.Module):
         self.stochastic_nn.apply(_weights_init)        
 
         self.setup_parameters()
-        self.setup_functiondist()
+        self.setup_functiondist()   
         
+        
+        
+        self.hidden_adv_out = False 
+    
+        
+        print('upper_temp: {}'.format(self.upper_temp))
+         
+         
+         
 
 
         
@@ -1251,7 +1273,7 @@ class FBNN_ResNet_Pro_typeA(nn.Module):
          
         #set prior params        
         self.params_p_mean  = nn.ParameterList( [nn.Parameter(torch.zeros_like(ith_param) ,requires_grad=False )  for ith_param in self.stochastic_nn.parameters()] )
-        self.params_p_logstd = nn.ParameterList([nn.Parameter(torch.ones_like(ith_param)  ,requires_grad=False )  for ith_param in self.stochastic_nn.parameters()]) 
+        self.params_p_logstd = nn.ParameterList([nn.Parameter(torch.empty_like(ith_param).uniform_(0,1)  ,requires_grad=False )  for ith_param in self.stochastic_nn.parameters()]) ##that is solution, will be a solution of MFVI as well.
         return    
     
     
@@ -1272,10 +1294,15 @@ class FBNN_ResNet_Pro_typeA(nn.Module):
         msg += '#pmu: {}, #pstd: {} \n'.format(_num_parameters(self.params_p_mean),_num_parameters(self.params_p_logstd))
         return msg[:-1]
         
-               
+        
+           
+           
+           
     
     
+    # computation checked     
     def compute_funcdist_wo_jacobian(self, x , param_q_mean, param_q_logstd, no_grad_jacobian=False ):
+    #def compute_funcdist_wo_jacobian(self, x , param_q_mean, param_q_logstd, no_grad_jacobian=True ):
 
         #self.setup_functiondist() if not self.flag_setup else 1        
         assert len(param_q_logstd) <=2
@@ -1303,6 +1330,7 @@ class FBNN_ResNet_Pro_typeA(nn.Module):
     
     
     
+    #def compute_funcdist_wo_jacobian_h(self, h , param_q_mean, param_q_logstd , no_grad_jacobian=False ):
     def compute_funcdist_wo_jacobian_h(self, h , param_q_mean, param_q_logstd , no_grad_jacobian=True ):
 
         #self.setup_functiondist() if not self.flag_setup else 1        
@@ -1337,7 +1365,8 @@ class FBNN_ResNet_Pro_typeA(nn.Module):
 
 
 
-    def compute_logit_samples(self, x , y=None, topk=3,  nfsample=1, intrain=True,  use_bayes=True, update_h = False,  configs=None):                                       
+
+    def compute_logit_samples(self, x , y=None, topk=3,  nfsample=1, intrain=True,  use_bayes=True, update_h = False,  configs=None ):                                       
         # set train mode
         self.train() if intrain else self.eval()                                             
 
@@ -1351,48 +1380,22 @@ class FBNN_ResNet_Pro_typeA(nn.Module):
         
         if not use_bayes:
             nfsample = 1            
-            logits_sample = qf_mean_x[None,...] #(1,nb,ydlim) 
-            
-            ## update the parameters of the empirical hidden feature 
+            logits_sample = qf_mean_x[None,...] #(1,nb,ydlim)            
+
             if intrain and update_h and (y is not None):
                 self.update_hidden_module_from_hx(h_x, y)                                 
 
-                       
         else:
             nfsample = configs.train.nfsample if configs is not None else nfsample
             logits_sample = self.build_logit_samples_from_fdist(qf_mean_x,qf_std_x,nfsample=nfsample)          
-
-            
-            ## compute phat by MPA             
-            phat_nominator   =  qf_mean_x    
-            nmh_distance     = -self.mixture_module.compute_mh_distance_batch(h_x, overclass=True, usenormalize=False)   
-            phat_denominator =  torch.sqrt( 1 + torch.pi/8 * nmh_distance )         
-            post_logits_phat =  (phat_nominator / phat_denominator).detach().clone()  
-
-            ## build z \sim q(z): categorical distribution
-            post_logits_phat_topk,logit_idx = post_logits_phat.topk(topk, dim=1)
-            cat_h_sparse_samples = Categorical(logits=post_logits_phat_topk).sample((nfsample,))
-            cat_h_samples = torch.cat([ logit_idx[range(len(logit_idx)),i_samples].view(1,-1) for i_samples in cat_h_sparse_samples],dim=0)                               
-                               
-            ## get logits samples
-            peak_idx            =  torch.cat( [F.one_hot(i_sample, num_classes=logits_sample.shape[-1])[None] for i_sample in cat_h_samples] , dim = 0 ) 
-            soft_idx            =  1- peak_idx
-            temperature_samples =  peak_idx/self.temperature_peak + soft_idx/self.temperature_soft
-            logits_sample       =  logits_sample * temperature_samples
                                     
         return logits_sample
 
 
-    ## update mixture feature during training
-    def update_hidden_module(self, x, y):
-        h = self.deterministic_nn(x)                
-        self.mixture_module.update_layers_static_batch(h, y)
-        return 
 
-    
+                   
 
-
-    ## inference using the adversarial hidden features 
+    #def compute_logit_samples(self, x , y=None, use_bayes=True ,intrain=True, nfsample=1, topk=3, configs=None):                               
     def compute_logit_samples_v2(self, x , y=None, topk=3,  nfsample=1, intrain=True,  use_bayes=True, update_h = False,  configs=None):                                       
 
         # set train mode
@@ -1411,87 +1414,123 @@ class FBNN_ResNet_Pro_typeA(nn.Module):
             logits_sample = qf_mean_x[None,...] #(1,nb,ydlim)            
             
             
-            ## update the parameters of the empirical hidden feature 
             if intrain and update_h and (y is not None):
                 self.update_hidden_module_from_hx(h_x, y)                                 
                     
             
         else:
-            nfsample = configs.train.nfsample if configs is not None else nfsample
+            # nfsample = configs.train.nfsample if configs is not None else nfsample
+            nfsample = 1                        
             logits_sample = self.build_logit_samples_from_fdist(qf_mean_x,qf_std_x,nfsample=nfsample)          
-            
-            
-            ## compute phat by MPA             
-            phat_nominator   =  qf_mean_x    
-            nmh_distance     = -self.mixture_module.compute_mh_distance_batch(h_x, overclass=True, usenormalize=False)   
-            phat_denominator =  torch.sqrt( 1 + torch.pi/8 * nmh_distance )         
-            post_logits_phat =  (phat_nominator / phat_denominator).detach().clone()  
-
-            ## build z \sim q(z): categorical distribution
-            post_logits_phat_topk,logit_idx = post_logits_phat.topk(topk, dim=1)
-            cat_h_sparse_samples = Categorical(logits=post_logits_phat_topk).sample((nfsample,))
-            cat_h_samples = torch.cat([ logit_idx[range(len(logit_idx)),i_samples].view(1,-1) for i_samples in cat_h_sparse_samples],dim=0)                               
-                               
-            ## get logits samples
-            peak_idx            =  torch.cat( [F.one_hot(i_sample, num_classes=logits_sample.shape[-1])[None] for i_sample in cat_h_samples] , dim = 0 ) 
-            soft_idx            =  1- peak_idx
-            temperature_samples =  peak_idx/self.temperature_peak + soft_idx/self.temperature_soft
-            logits_sample       =  logits_sample * temperature_samples
 
         return logits_sample, h_x
-       
-                
-    ## update mixture feature during training
+
+
+
+
+
+
+    def update_hidden_module(self, x, y):
+        # update mixture feature
+        h = self.deterministic_nn(x)                
+        self.mixture_module.update_layers_static_batch(h, y)
+        return 
+    
     def update_hidden_module_from_hx(self, h_x, y):
+        # update mixture feature
         self.mixture_module.update_layers_static_batch(h_x, y)
         return     
-       
-                   
-           
     
-    def compute_kde_pfuncdist_from_h(self, ht, param_q_mean, param_q_logstd ,temperature=1e1 ):
+
+
+
+    def predict_eval(self, x  ,use_bayes=True, topk=3, nfsample=1):                                        
+        logits_sample = self.compute_logit_samples(x ,use_bayes=use_bayes ,intrain=False, nfsample=nfsample, topk=topk, configs=None)                                
+        pred          = F.softmax(logits_sample,dim=-1) #(nfsample,nb,nout) 
+                                
+        outs = AttrDict()
+        outs.pred = pred.mean(dim=0)  #(nb,nout)        
+        outs.logits = logits_sample   #(nfsample,nb,ydim)      
+        return outs       
+        
+        
+
+
+
+
+
+
+    def compute_kde_pfuncdist_from_h(self, ht, param_q_mean, param_q_logstd ,temperature=1e1, requires_grad=False ):
         #import torch.nn.functional as F
-        h_mean, _, _ = self.mixture_module.get_static_params()
+        h_mean, _, _       = self.mixture_module.get_static_params()
+        h_mean             = h_mean.detach().clone()              #
+        kde_ht             = self.mixture_module.compute_mh_distance_batch(ht ,overclass=True, usenormalize=True) ## -0.5*exp()
+        kde_weight         = F.softmax( kde_ht , dim=-1)
+        proj_ht            = (kde_weight[...,None]*h_mean[None,...]).sum(dim=1) #(nb,ncls,1)*(1,ncls,ndim) = (nb,ndim)
 
-        kde_ht = self.mixture_module.compute_mh_distance_batch(ht ,overclass=True)
-        kde_weight = F.softmax( kde_ht, dim=-1)
-        proj_ht = (kde_weight[...,None]*h_mean[None,...]).sum(dim=1) #(nb,ncls,1)*(nb,ncls,ndim) = (nb,ndim)
+        f_mean             = self.func_model(param_q_mean, proj_ht)
 
-        f_mean = self.func_model(param_q_mean, proj_ht)
         param_q_std        = [transform_logstd(ith_q_logstd) for ith_q_logstd in param_q_logstd ]                
         f_var_linear_inner = param_q_std[0][None,...]*proj_ht[:,None,:] #(1,ydim,nparams)*(nb,1,nparams) = (nb,ydim,nparams)
         f_var_linear       = torch.pow(f_var_linear_inner,2).sum(dim=-1) #(nb,ydim)
-        f_var_bias         = torch.pow( param_q_std[1][None,...], 2) if len(param_q_logstd) == 2 else 0.0                
-        f_diagcov          = f_var_linear + f_var_bias #(nb,ydim)
         
         
-        # stop gradient
-        return f_mean.detach().clone(), f_diagcov.detach().clone(), proj_ht.detach().clone()
+        
+        if len(param_q_logstd) == 2 : #bias term exists
+            f_var_bias         = torch.pow( param_q_std[1][None,...], 2)                 
+        else:
+            f_var_bias         = torch.tensor([0.0]).to(ht.device)
 
+        f_diagcov          = f_var_linear + f_var_bias #(nb,ydim)
+
+
+
+
+        ## revised prior induced by h_mean
+        h_mean_square = (param_q_std[0][None,:,:])*(h_mean[:,None,:])    #(1,ncls,nparams) * (ncls,1,nparams)
+        h_mean_square = (h_mean_square**2).sum(dim=-1)  #(ncls,ncls)
+
+        phat_idx      = kde_weight.max(dim=-1)[1]
+        Mhat          = h_mean_square[phat_idx] #(nb,ncls)
+
+        f_diagcov     = 2*( Mhat + f_var_bias.reshape(1,-1) ) - f_diagcov  #(1,ydim) + (nb,ydim)
+        f_diagcov     = f_diagcov.clamp(min=1e-6)
+        f_diagcov     = (self.priorstdout**2)*f_diagcov
+
+        
+        if requires_grad:        
+            # stop gradient
+            return f_mean, f_diagcov, proj_ht
+        else:
+            # stop gradient
+            return f_mean.detach().clone(), f_diagcov.detach().clone(), proj_ht.detach().clone()    
+                            
+                
     
-    
+
+
     def compute_fdist(self, xc , topk=3, useswagparam=True):                
 
         self.train()                
     
-        # compute "q" function space dist on context inputs        
-        param_q_mean, param_q_logstd              = list(self.stochastic_nn.parameters()) ,  list(self.params_q_logstd)             
+        # compute "q" functional dist on context set        
+        param_q_mean, param_q_logstd              = list(self.stochastic_nn.parameters()) ,  list(self.params_q_logstd)     
+        
         qf_mean_xc , qf_diagcov_xc, h_xc  = self.compute_funcdist_wo_jacobian( xc, param_q_mean, param_q_logstd )   #without jacobian computation         
         qf_std_xc                         = torch.sqrt(qf_diagcov_xc)
         
-        # compute "p" function space dist on context inputs        
+        # compute "p" functional dist on context set
         if not useswagparam:            
             pf_mean_xc =                1*torch.zeros_like(qf_mean_xc).to(xc.device)
             pf_std_xc  = self.priorstdout*torch.ones_like(qf_mean_xc).to(xc.device)            
         else:        
 
-            ## compute "BMA" function space dist on context inputs        
-            param_p_mean, param_p_logstd  = list(self.params_p_mean) ,  list(self.params_p_logstd) 
+            param_p_mean, param_p_logstd   = list(self.params_p_mean) ,  list(self.params_p_logstd) 
             pf_mean_xc , pf_diagcov_xc, _  = self.compute_kde_pfuncdist_from_h( h_xc, param_p_mean, param_p_logstd )      
             pf_mean_xc = pf_mean_xc.detach().clone()
-            pf_std_xc  = self.priorstdout*torch.sqrt(pf_diagcov_xc).detach().clone()
+            pf_std_xc  = torch.sqrt(pf_diagcov_xc).detach().clone() 
 
-            ## marginalization by estimated the latent variable z        
+
             if (topk < pf_mean_xc.shape[-1]) :
                 nbd_idx    = torch.topk(pf_mean_xc,k = topk,dim=-1)[1]
                 qf_mean_xc, qf_std_xc = torch.gather(qf_mean_xc,1,nbd_idx), torch.gather(qf_std_xc ,1,nbd_idx)    
@@ -1501,9 +1540,9 @@ class FBNN_ResNet_Pro_typeA(nn.Module):
         param_qf = (qf_mean_xc, qf_std_xc)    
         param_pf = (pf_mean_xc, pf_std_xc)
 
-        return param_qf, param_pf, None                    
-           
-               
+        return param_qf, param_pf, None           
+                 
+
         
     def compute_sup_kl(self, params_qf, params_pf, weight=None, Lowrank=True, Diag=True, nctset=2, eps=1e-8):        
         def _compute_kl(params_qf, params_pf , Lowrank=True, Diag=False):
@@ -1540,11 +1579,12 @@ class FBNN_ResNet_Pro_typeA(nn.Module):
         return torch.clamp(sup_kl,min=eps)    
 
 
-    ## get the last layer weight parameters
+
+    
     def get_current_p_params(self):
         return [i_param.data.detach().clone() for i_param in self.stochastic_nn.parameters()]  
+
            
-    ## update the last layer weight parameters
     def update_params_p(self,param_p_mean,param_p_logstd,base_nan=-12.):
 
         for i_p_mean,i_p_logstd,i_u_p_mean,i_u_p_logstd in zip(self.params_p_mean,
@@ -1554,74 +1594,41 @@ class FBNN_ResNet_Pro_typeA(nn.Module):
             i_p_mean.data=i_u_p_mean.data
             i_p_logstd.data= torch.nan_to_num(i_u_p_logstd.data, nan= base_nan) 
         return             
+                     
+         
+         
+                        
+    def compute_h_x_grad(self,h_x):
+        #print('test h_x_grad')
+        h_x_copy = h_x.detach().clone().requires_grad_(True)                                                                                          
+        #mh_distance = self.mixture_module.compute_mh_distance_batch(h_x_copy, overcla  ss=True, usenormalize=False)  ## (-0.5*exp()) 
+        mh_distance = self.mixture_module.compute_mh_distance_batch(h_x_copy, overclass=True, usenormalize=True)  ## (-0.5*exp()) 
+
+        # if version == '1':
+        mh_distance_topk1 = torch.topk(mh_distance,k=1)[0]                  
+        loss = mh_distance_topk1 - torch.logsumexp(mh_distance,dim=1)
+        loss.mean().backward()   
+
+            
+        h_x_grad = -h_x_copy.grad.data 
+        return h_x_copy, h_x_grad
+    
+    
                 
 
 
 
-    
-    ##-------------------------------------------------------------
-    ## build the adversional context hidden feature
-    ##-------------------------------------------------------------
-    
-    def compute_h_x_grad(self,h_x):
-        h_x_copy = h_x.detach().clone().requires_grad_(True)                                                                                          
-        mh_distance = -self.mixture_module.compute_mh_distance_batch(h_x_copy, overclass=False, usenormalize=False)  
-        mh_distance.mean().backward()   
-        h_x_grad = h_x_copy.grad.data 
-        return h_x_copy, h_x_grad
-            
-            
-    def compute_fdist_from_h(self, h_xc , topk=3, useswagparam=True):                
-        self.train()                
-    
-        # compute "q" function space dist on context inputs        
-        param_q_mean, param_q_logstd    = list(self.stochastic_nn.parameters()) ,  list(self.params_q_logstd)     
-        qf_mean_xc , qf_diagcov_xc, _   = self.compute_funcdist_wo_jacobian_h( h_xc, param_q_mean, param_q_logstd )          ## v20 revised        
-        qf_std_xc                       = torch.sqrt(qf_diagcov_xc)
-        
-        # compute "p" function space dist on context inputs        
-        if not useswagparam:            
-            pf_mean_xc =                1*torch.zeros_like(qf_mean_xc).to(h_xc.device)
-            pf_std_xc  = self.priorstdout*torch.ones_like(qf_mean_xc).to(h_xc.device)            
-        else:        
-            ## compute "BMA" function space dist on context inputs                    
-            param_p_mean, param_p_logstd  = list(self.params_p_mean) ,  list(self.params_p_logstd) 
-            pf_mean_xc , pf_diagcov_xc, _  = self.compute_kde_pfuncdist_from_h( h_xc, param_p_mean, param_p_logstd, requires_grad=False )      
-            pf_mean_xc = pf_mean_xc.detach().clone()
-            pf_std_xc  = self.priorstdout*torch.sqrt(pf_diagcov_xc).detach().clone()
 
 
-            ## marginalization by estimated the latent variable z        
-            if (topk < pf_mean_xc.shape[-1]) :
-                nbd_idx    = torch.topk(pf_mean_xc,k = topk,dim=-1)[1]
-                qf_mean_xc, qf_std_xc = torch.gather(qf_mean_xc,1,nbd_idx), torch.gather(qf_std_xc ,1,nbd_idx)    
-                pf_mean_xc, pf_std_xc = torch.gather(pf_mean_xc,1,nbd_idx), torch.gather(pf_std_xc ,1,nbd_idx)    
 
-            
-        param_qf = (qf_mean_xc, qf_std_xc)    
-        param_pf = (pf_mean_xc, pf_std_xc)
-
-
-        return param_qf, param_pf, None       
-    
-    
-    
-    
-    def predict_eval(self, x  ,use_bayes=True, topk=3, nfsample=1):                                        
-        logits_sample = self.compute_logit_samples(x ,use_bayes=use_bayes ,intrain=False, nfsample=nfsample, topk=topk, configs=None)                                
-        pred          = F.softmax(logits_sample,dim=-1) #(nfsample,nb,nout) 
-                                
-        outs = AttrDict()
-        outs.pred = pred.mean(dim=0)  #(nb,nout)        
-        outs.logits = logits_sample   #(nfsample,nb,ydim)      
-        return outs       
-        
 
 
 class FBNN_ResNet_Pro_typeB(FBNN_ResNet_Pro_typeA):
 
     def __init__(self, block, num_blocks, in_dim=3, out_dim=10, scalelogstd = -8, priorstdin = 1.0, priorstdout = 10., temppeak=1. ):
-                        
+
+
+                
         super(FBNN_ResNet_Pro_typeB, self).__init__( block, num_blocks, in_dim, out_dim, scalelogstd, priorstdin, priorstdout, temppeak)        
         
         self.in_planes = 64        
@@ -1649,7 +1656,7 @@ class FBNN_ResNet_Pro_typeB(FBNN_ResNet_Pro_typeA):
                            ]       
 
         self.deterministic_nn = nn.Sequential(*deterministic_nn)   
-        self.stochastic_nn    =  nn.Sequential(*stochastic_nn)                       
+        self.stochastic_nn    = nn.Sequential(*stochastic_nn)                       
         self.mixture_module   = mixture_module     
         
         self.deterministic_nn.apply(_weights_init)          
@@ -1660,11 +1667,12 @@ class FBNN_ResNet_Pro_typeB(FBNN_ResNet_Pro_typeA):
         
         
         
-        
-        
-        
-        
-        
+
+
+
+
+
+
         
         
         
