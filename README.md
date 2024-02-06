@@ -1,6 +1,6 @@
 ## Improving Function-Space Bayesian Neural networks with Informative Priors
 
-This is implemenation for Improving Function-Space Bayesian Neural networks with Informative Priors.
+This is an implemenation for "Improving Function-Space Bayesian Neural networks with Informative Priors".
 
 
 
@@ -11,7 +11,6 @@ This is implemenation for Improving Function-Space Bayesian Neural networks with
 * models_vit.py            : transfer learning algorithms for VIT 
 * models_regression_v3.py  : regression algorithms 
 
-* train_v3_bmafbnn_adv_hidden.py  : train R-FVI with informative priors for classifation
 * train_v3_bmafbnn_adv_hidden.py  : train R-FVI with informative priors for classifation
 
 
