@@ -263,15 +263,28 @@ def main(args):
     
     # ## set epoch list for prior construction
     epochs_for_bayes = int(configs.train.nepoch*configs.train.nepochratio)    
+    nfreqprint = 5 if configs.train.usepretrain else configs.exp.nfreqprint        
+
+    if configs.train.paramtrace == -1:
+        #tmp_list = np.arange( epochs_for_bayes - past_periods, epochs_for_bayes ) 
+        epochs_for_priorconstruction = [1,2]
+        epochs_for_bayes = 3
+        nfreqprint = 1
+
     if configs.train.paramtrace == 1:
         past_periods, period = 20 , 4
+        tmp_list = np.arange( epochs_for_bayes - past_periods, epochs_for_bayes ) 
+        epochs_for_priorconstruction = [i_tmp for i_tmp in tmp_list if i_tmp % period ==0]
+
     if configs.train.paramtrace == 2:
         past_periods, period = 5 , 1    
+        tmp_list = np.arange( epochs_for_bayes - past_periods, epochs_for_bayes ) 
+        epochs_for_priorconstruction = [i_tmp for i_tmp in tmp_list if i_tmp % period ==0]
+
     if configs.train.paramtrace == 9:
-        past_periods, period = 10 , 2
-        
-    tmp_list = np.arange( epochs_for_bayes - past_periods, epochs_for_bayes ) 
-    epochs_for_priorconstruction = [i_tmp for i_tmp in tmp_list if i_tmp % period ==0]
+        past_periods, period = 10 , 2        
+        tmp_list = np.arange( epochs_for_bayes - past_periods, epochs_for_bayes ) 
+        epochs_for_priorconstruction = [i_tmp for i_tmp in tmp_list if i_tmp % period ==0]
 
 
     
@@ -379,7 +392,6 @@ def main(args):
         
         
 
-        nfreqprint = 5 if configs.train.usepretrain else configs.exp.nfreqprint        
 
         if (i % nfreqprint == 0) or (i==1):
                         

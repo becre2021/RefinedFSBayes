@@ -168,7 +168,7 @@ def _setup_model_deep(configs: AttrDict) -> nn.Module:
     ## proposed lines
     ## -------------------------------------------
 
-    if configs.model.modelname == 'bmafbresnet20':    ## Last layer without jacobian computation          
+    if configs.model.modelname == 'bmafbresnet20v10':    ## Last layer without jacobian computation          
         model = FBNN_ResNet_Pro_typeA(BasicBlock, 
                                     [3,3,3],
                                     in_dim=in_dim, 
@@ -1324,64 +1324,6 @@ class FBNN_ResNet_Pro_typeA(nn.Module):
            
            
     
-    
-    # computation checked     
-    def compute_funcdist_wo_jacobian(self, x , param_q_mean, param_q_logstd, no_grad_jacobian=False ):
-    #def compute_funcdist_wo_jacobian(self, x , param_q_mean, param_q_logstd, no_grad_jacobian=True ):
-
-        #self.setup_functiondist() if not self.flag_setup else 1        
-        assert len(param_q_logstd) <=2
-        
-        # compute f_mean
-        h = self.deterministic_nn(x) 
-        f_mean = self.func_model(param_q_mean, h ) 
-
-        # use values of jacobian without grad
-        if no_grad_jacobian:
-            h = h.detach().clone()
-
-        # comopute f_std
-        param_q_std  = [transform_logstd(ith_q_logstd) for ith_q_logstd in param_q_logstd ]                
-        f_var_linear_inner = param_q_std[0][None,...]*h[:,None,:] #(1,ydim,nparams)*(nb,1,nparams) = (nb,ydim,nparams)
-        f_var_linear       = torch.pow(f_var_linear_inner,2).sum(dim=-1) #(nb,ydim)
-
-        if len(param_q_logstd) == 2:               
-            f_var_bias = torch.pow( param_q_std[1][None,...], 2)  
-        else :  
-            f_var_bias = 0.0
-        f_diagcov = f_var_linear + f_var_bias #(nb,ydim)
-    
-        return f_mean, f_diagcov, h
-    
-    
-    
-    #def compute_funcdist_wo_jacobian_h(self, h , param_q_mean, param_q_logstd , no_grad_jacobian=False ):
-    def compute_funcdist_wo_jacobian_h(self, h , param_q_mean, param_q_logstd , no_grad_jacobian=True ):
-
-        #self.setup_functiondist() if not self.flag_setup else 1        
-        assert len(param_q_logstd) <=2
-        
-        # compute f_mean
-        #h = self.deterministic_nn(x) 
-        f_mean = self.func_model(param_q_mean, h ) 
-
-        # use values of jacobian without grad
-        if no_grad_jacobian:
-            h = h.detach().clone()
-
-        # comopute f_std        
-        param_q_std        = [transform_logstd(ith_q_logstd) for ith_q_logstd in param_q_logstd ]                
-        f_var_linear_inner = param_q_std[0][None,...]*h[:,None,:] #(1,ydim,nparams)*(nb,1,nparams) = (nb,ydim,nparams)
-        f_var_linear       = torch.pow(f_var_linear_inner,2).sum(dim=-1) #(nb,ydim)
-
-        if len(param_q_logstd) == 2:               
-            f_var_bias = torch.pow( param_q_std[1][None,...], 2)  
-        else :  
-            f_var_bias = 0.0
-        f_diagcov = f_var_linear + f_var_bias #(nb,ydim)
-    
-        return f_mean, f_diagcov, h
-    
 
     def build_logit_samples_from_fdist(self, f_mean,f_std,nfsample=1):
         eps = torch.randn(nfsample,*f_mean.shape).to(f_mean.device) #(nfsample,nb,ydlim)
@@ -1485,6 +1427,66 @@ class FBNN_ResNet_Pro_typeA(nn.Module):
 
 
 
+
+    # computation checked     
+    def compute_funcdist_wo_jacobian(self, x , param_q_mean, param_q_logstd, no_grad_jacobian=False ):
+    #def compute_funcdist_wo_jacobian(self, x , param_q_mean, param_q_logstd, no_grad_jacobian=True ):
+
+        #self.setup_functiondist() if not self.flag_setup else 1        
+        assert len(param_q_logstd) <=2
+        
+        # compute f_mean
+        h = self.deterministic_nn(x) 
+        f_mean = self.func_model(param_q_mean, h ) 
+
+        # use values of jacobian without grad
+        if no_grad_jacobian:
+            h = h.detach().clone()
+
+        # comopute f_std
+        param_q_std  = [transform_logstd(ith_q_logstd) for ith_q_logstd in param_q_logstd ]                
+        f_var_linear_inner = param_q_std[0][None,...]*h[:,None,:] #(1,ydim,nparams)*(nb,1,nparams) = (nb,ydim,nparams)
+        f_var_linear       = torch.pow(f_var_linear_inner,2).sum(dim=-1) #(nb,ydim)
+
+        if len(param_q_logstd) == 2:               
+            f_var_bias = torch.pow( param_q_std[1][None,...], 2)  
+        else :  
+            f_var_bias = 0.0
+        f_diagcov = f_var_linear + f_var_bias #(nb,ydim)
+    
+        return f_mean, f_diagcov, h
+    
+    
+    
+    def compute_funcdist_wo_jacobian_h(self, h , param_q_mean, param_q_logstd , no_grad_jacobian=True ):
+
+        #self.setup_functiondist() if not self.flag_setup else 1        
+        assert len(param_q_logstd) <=2
+        
+        # compute f_mean
+        #h = self.deterministic_nn(x) 
+        f_mean = self.func_model(param_q_mean, h ) 
+
+        # use values of jacobian without grad
+        if no_grad_jacobian:
+            h = h.detach().clone()
+
+        # comopute f_std        
+        param_q_std        = [transform_logstd(ith_q_logstd) for ith_q_logstd in param_q_logstd ]                
+        f_var_linear_inner = param_q_std[0][None,...]*h[:,None,:] #(1,ydim,nparams)*(nb,1,nparams) = (nb,ydim,nparams)
+        f_var_linear       = torch.pow(f_var_linear_inner,2).sum(dim=-1) #(nb,ydim)
+
+        if len(param_q_logstd) == 2:               
+            f_var_bias = torch.pow( param_q_std[1][None,...], 2)  
+        else :  
+            f_var_bias = 0.0
+        f_diagcov = f_var_linear + f_var_bias #(nb,ydim)
+    
+        return f_mean, f_diagcov, h
+    
+
+
+    ## informative function-space prior
     def compute_kde_pfuncdist_from_h(self, ht, param_q_mean, param_q_logstd ,temperature=1e1, requires_grad=False ):
         #import torch.nn.functional as F
         h_mean, _, _       = self.mixture_module.get_static_params()
@@ -1621,7 +1623,58 @@ class FBNN_ResNet_Pro_typeA(nn.Module):
         return             
                      
          
-         
+
+
+
+
+
+
+    def compute_fdist_from_h(self, h_xc , topk=3, useswagparam=True):                
+
+        self.train()                
+    
+        # compute "q" functional dist on context set        
+        param_q_mean, param_q_logstd              = list(self.stochastic_nn.parameters()) ,  list(self.params_q_logstd)     
+        
+        qf_mean_xc , qf_diagcov_xc, h_xc  = self. compute_funcdist_wo_jacobian_h(h_xc,
+                                                                                 param_q_mean, 
+                                                                                 param_q_logstd 
+                                                                                 )   #without jacobian computation         
+        qf_std_xc                         = torch.sqrt(qf_diagcov_xc)
+
+
+        
+        # compute "p" function-space dist on context set
+        if not useswagparam:            
+            pf_mean_xc =                1*torch.zeros_like(qf_mean_xc).to(h_xc.device)
+            pf_std_xc  = self.priorstdout*torch.ones_like(qf_mean_xc).to(h_xc.device)            
+        else:        
+            ## kde + swag diag +             
+            param_p_mean, param_p_logstd  = list(self.params_p_mean) ,  list(self.params_p_logstd) 
+            pf_mean_xc , pf_diagcov_xc, _  = self.compute_kde_pfuncdist_from_h( h_xc, param_p_mean, param_p_logstd, requires_grad=False )      
+            pf_mean_xc = pf_mean_xc.detach().clone()
+            #pf_std_xc  = self.priorstdout*torch.sqrt(pf_diagcov_xc).detach().clone()
+            pf_std_xc  = torch.sqrt(pf_diagcov_xc).detach().clone()   ## compute_kde_pfuncdist_from_h 안으로 넣음
+
+
+            if (topk < pf_mean_xc.shape[-1]) :
+                nbd_idx    = torch.topk(pf_mean_xc,k = topk,dim=-1)[1]
+                qf_mean_xc, qf_std_xc = torch.gather(qf_mean_xc,1,nbd_idx), torch.gather(qf_std_xc ,1,nbd_idx)    
+                pf_mean_xc, pf_std_xc = torch.gather(pf_mean_xc,1,nbd_idx), torch.gather(pf_std_xc ,1,nbd_idx)    
+
+
+        #breakpoint()
+        #(qf_mean_xc + qf_std_xc).mean().backward()   
+        # [*self.deterministic_nn.parameters()][-1].grad 
+            
+        param_qf = (qf_mean_xc, qf_std_xc)    
+        param_pf = (pf_mean_xc, pf_std_xc)
+
+        #breakpoint()
+        #return param_qf, param_pf 
+        return param_qf, param_pf, None       
+    
+                     
                         
     def compute_h_x_grad(self,h_x):
         #print('test h_x_grad')
