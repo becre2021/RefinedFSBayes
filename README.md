@@ -1,6 +1,6 @@
-## Improving Function-Space Bayesian Neural networks with Informative Priors
+## Improving Function-Space Bayesian Neural Networks with Feature-Distribution-Aware Prior
 
-This is an implemenation for "Improving Function-Space Bayesian Neural networks with Informative Priors".
+This is an implemenation for "Improving Function-Space Bayesian Neural Networks with Feature-Distribution-Aware Prior".
 
 
 
