@@ -1,6 +1,6 @@
-## Improving Function-Space Bayesian Neural Networks with Feature-Distribution-Aware Prior
+## A Hybrid Approach to Function-Space Bayesian Neural Networks: Adaptive Priors from Learning Trajectories
 
-This is an implemenation for "Improving Function-Space Bayesian Neural Networks with Feature-Distribution-Aware Prior".
+This is an implemenation for "A Hybrid Approach to Function-Space Bayesian Neural Networks: Adaptive Priors from Learning Trajectories".
 
 
 
