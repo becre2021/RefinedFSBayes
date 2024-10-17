@@ -1200,18 +1200,6 @@ class Hiddenfeature_Mixture_Module(nn.Module):
         
         
         
-        
-        
-    # model = FBNN_ResNet_Pro_typeB(BasicBlock, 
-    # 184                                 [2,2,2,2],
-    # 185                                 in_dim=in_dim, 
-    # 186                                 out_dim=out_dim, 
-    # 187                                 scalelogstd=configs.model.scalelogstd,
-    # 188                                 priorstdout = configs.model.priorstdout,
-    # 189                                 temppeak = configs.model.temppeak if 'temppeak' in configs.model.keys() else 0.5,
-    # 190     )
-
-
 
 
 class FBNN_ResNet_Pro_typeA(nn.Module):

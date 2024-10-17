@@ -1,6 +1,6 @@
-## A Hybrid Approach to Function-Space Bayesian Neural Networks: Adaptive Priors from Learning Trajectories
+## Adaptive Priors from Learning Trajectories for Function-Space Bayesian Neural Networks
 
-This is an implemenation for "A Hybrid Approach to Function-Space Bayesian Neural Networks: Adaptive Priors from Learning Trajectories".
+This is an implemenation for "Adaptive Priors from Learning Trajectories for Function-Space Bayesian Neural Networks"
 
 
 
