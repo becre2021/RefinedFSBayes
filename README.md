@@ -1,6 +1,6 @@
 ## Adaptive Priors from Learning Trajectories for Function-Space Bayesian Neural Networks
 
-This is an implemenation for "Adaptive Priors from Learning Trajectories for Function-Space Bayesian Neural Networks"
+This is an implemenation for "Effective Function-Space Regularization for Bayesian Neural Networks: Leverage the information from Learning Trajectory"
 
 
 
