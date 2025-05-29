@@ -46,11 +46,6 @@ def _misclass_tgt(output, target, topk):
 
         return res[0].numpy()
 
-def get_acc(preds, targets, **args):
-    #preds = preds.cpu().data().numpy() if torch.is_tensor(preds) else preds 
-    #targets = targets.cpu().data().numpy() if torch.is_tensor(targets) else targets 
-    
-    return np.mean(np.argmax(preds, axis=1) == targets)
 
 def acc_aac(preds, targets, steps=1000, return_plot=False, **args):
     idx = np.argsort(preds.max(1))
@@ -67,9 +62,11 @@ def acc_aac(preds, targets, steps=1000, return_plot=False, **args):
         return accs, 1-np.trapz(accs)/steps
     return 1-np.trapz(accs)/steps
 
+
+def get_acc(preds, targets, **args):
+    return np.mean(np.argmax(preds, axis=1) == targets)
+
 def get_ll(preds, targets, **args):
-    #preds = preds.cpu().data().numpy() if torch.is_tensor(preds) else preds 
-    #targets = targets.cpu().data().numpy() if torch.is_tensor(targets) else targets     
     return np.log(eps + preds[np.arange(len(targets)), targets]).mean()
 
 def get_acc5(preds, targets, **args):

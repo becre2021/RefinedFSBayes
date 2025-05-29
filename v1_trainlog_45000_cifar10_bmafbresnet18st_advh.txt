@@ -9,3 +9,19 @@ savepath: ./results/cifar10_cifar100/trainsetcifar10_contextsetcifar100_ntrainse
 [10/200], taken (sec): 39.031  : loss 0.468, 	 lossdata 0.468, 	  lossreg 0.000, 	 acc_val 0.814, 	 nll_val 0.558, 	 last_lr 0.100, 	 usebayes: False 
 [110/200], taken (sec): 27.056  : loss 0.162, 	 lossdata 0.162, 	  lossreg 0.000, 	 acc_val 0.884, 	 nll_val 0.389, 	 last_lr 0.044, 	 usebayes: False 
 [120/200], taken (sec): 26.638  : loss 0.130, 	 lossdata 0.130, 	  lossreg 0.000, 	 acc_val 0.875, 	 nll_val 0.409, 	 last_lr 0.036, 	 usebayes: False 
+[130/200], taken (sec): 26.608  : loss 0.101, 	 lossdata 0.101, 	  lossreg 0.000, 	 acc_val 0.904, 	 nll_val 0.321, 	 last_lr 0.029, 	 usebayes: False 
+[140/200], taken (sec): 31.826  : loss 0.735, 	 lossdata 0.064, 	  lossreg 0.671, 	 acc_val 0.919, 	 nll_val 0.271, 	 last_lr 0.022, 	 usebayes: True 	 saved
+[150/200], taken (sec): 31.340  : loss 0.324, 	 lossdata 0.050, 	  lossreg 0.273, 	 acc_val 0.923, 	 nll_val 0.253, 	 last_lr 0.015, 	 usebayes: True 	 saved
+[160/200], taken (sec): 31.370  : loss 0.231, 	 lossdata 0.029, 	  lossreg 0.201, 	 acc_val 0.928, 	 nll_val 0.233, 	 last_lr 0.010, 	 usebayes: True 	 saved
+[170/200], taken (sec): 31.588  : loss 0.310, 	 lossdata 0.029, 	  lossreg 0.281, 	 acc_val 0.937, 	 nll_val 0.203, 	 last_lr 0.006, 	 usebayes: True 	 saved
+[180/200], taken (sec): 31.212  : loss 0.395, 	 lossdata 0.035, 	  lossreg 0.360, 	 acc_val 0.940, 	 nll_val 0.207, 	 last_lr 0.003, 	 usebayes: True 
+[190/200], taken (sec): 31.092  : loss 0.435, 	 lossdata 0.036, 	  lossreg 0.399, 	 acc_val 0.939, 	 nll_val 0.220, 	 last_lr 0.001, 	 usebayes: True 
+[200/200], taken (sec): 31.722  : loss 0.440, 	 lossdata 0.034, 	  lossreg 0.405, 	 acc_val 0.945, 	 nll_val 0.210, 	 last_lr 0.000, 	 usebayes: True 
+./results/cifar10_cifar100/trainsetcifar10_contextsetcifar100_ntrainset45000_modelnamebmafbresnet18st_scalelogstd-6_priorstdout10.0_lr0.1_nctset4_reglambda0.01_nfsample10_nepochratio0.7_usepretrainFalse_topk10_mixalpha0.1_paramtrace4_nexp1_v1/seeds1111_gentime05291306.pth.tar
+
+ result 
+fs=1 : (0.9203, 0.269404, 0.02985353333353999, 0.915, 0.173, 0.925, (0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)) 
+fs=5 : (0.934, 0.20021386, 0.004203913828730599, 0.947, 0.22, 1.17, (0.04, 0.052), (0.288, 0.092), (0.068, 0.098), (0.546, 0.235)) 
+fs=10 : (0.9365, 0.19265461, 0.007486554625630387, 0.952, 0.225, 1.213, (0.042, 0.036), (0.317, 0.062), (0.069, 0.068), (0.607, 0.166)) 
+
+
