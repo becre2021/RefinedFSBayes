@@ -1,0 +1,41 @@
+dataset: 
+    trainset: cifar100
+    contextset: tinyimagenet
+    oodset: svhn
+    ntrainset: 45000    
+
+model: 
+    modelname: bmafbresnet50 # cnn,fbcnn,fbcnnlast
+    in_dim: 3
+    out_dim: 100
+    hidden_dim: None
+    scalelogstd: -6    
+    priorstdin: 1
+    priorstdout: 10
+    temppeak: 1.
+
+    
+train:
+    nepoch: 200
+    nbatch: 128
+    nwarmupepoch: 5
+    lr: .1
+    Tmax: 200
+    nctset: 4
+    reglambda: 1e-2
+    nfsample: 1
+    updateperiod: 1
+    nepochratio: .8
+    usepretrain: False
+    topk: 10
+    losstype: elbo
+    mixalpha: 0.05
+
+    paramtrace: 7
+
+exp:
+    nexp: 1
+    seeds: 1111
+    nfreqprint: 10
+    v: 1
+    

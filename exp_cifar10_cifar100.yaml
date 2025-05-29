@@ -31,7 +31,7 @@ train:
     losstype: elbo
     mixalpha: 0.05
 
-    paramtrace: 9
+    paramtrace: 7
 
 exp:
     nexp: 1
