@@ -7,3 +7,5 @@ fs=exp : {'nexp': 1, 'seeds': 1111, 'nfreqprint': 10, 'v': 1}
 savepath: ./results/cifar10_cifar100/trainsetcifar10_contextsetcifar100_ntrainset45000_modelnamebmafbresnet18st_scalelogstd-6_priorstdout10.0_lr0.1_nctset4_reglambda0.01_nfsample10_nepochratio0.7_usepretrainFalse_topk10_mixalpha0.1_paramtrace4_nexp1_v1/seeds1111_gentime05291306.pth.tar
 [1/200], taken (sec): 39.632  : loss 1.754, 	 lossdata 1.754, 	  lossreg 0.000, 	 acc_val 0.436, 	 nll_val 1.576, 	 last_lr 0.020, 	 usebayes: False 
 [10/200], taken (sec): 39.031  : loss 0.468, 	 lossdata 0.468, 	  lossreg 0.000, 	 acc_val 0.814, 	 nll_val 0.558, 	 last_lr 0.100, 	 usebayes: False 
+[110/200], taken (sec): 27.056  : loss 0.162, 	 lossdata 0.162, 	  lossreg 0.000, 	 acc_val 0.884, 	 nll_val 0.389, 	 last_lr 0.044, 	 usebayes: False 
+[120/200], taken (sec): 26.638  : loss 0.130, 	 lossdata 0.130, 	  lossreg 0.000, 	 acc_val 0.875, 	 nll_val 0.409, 	 last_lr 0.036, 	 usebayes: False 
