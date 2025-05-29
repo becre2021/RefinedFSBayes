@@ -1,6 +1,7 @@
 dataset: 
     trainset: cifar10
     contextset: cifar100
+    oodset: svhn
     ntrainset: 45000    
 
 model: 

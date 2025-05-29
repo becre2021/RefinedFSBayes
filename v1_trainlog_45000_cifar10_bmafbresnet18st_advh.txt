@@ -1,0 +1,9 @@
+configs 
+fs=dataset : {'trainset': 'cifar10', 'contextset': 'cifar100', 'oodset': 'svhn', 'ntrainset': 45000} 
+fs=model : {'modelname': 'bmafbresnet18st', 'in_dim': 3, 'out_dim': 10, 'hidden_dim': 'None', 'scalelogstd': -6, 'priorstdin': 1, 'priorstdout': 10.0, 'temppeak': 1.0} 
+fs=train : {'nepoch': 200, 'nbatch': 128, 'nwarmupepoch': 5, 'lr': 0.1, 'Tmax': 200, 'nctset': 4, 'reglambda': 0.01, 'nfsample': 10, 'updateperiod': 1, 'nepochratio': 0.7, 'usepretrain': False, 'topk': 10, 'losstype': 'elbo', 'mixalpha': 0.1, 'paramtrace': 4} 
+fs=exp : {'nexp': 1, 'seeds': 1111, 'nfreqprint': 10, 'v': 1} 
+
+savepath: ./results/cifar10_cifar100/trainsetcifar10_contextsetcifar100_ntrainset45000_modelnamebmafbresnet18st_scalelogstd-6_priorstdout10.0_lr0.1_nctset4_reglambda0.01_nfsample10_nepochratio0.7_usepretrainFalse_topk10_mixalpha0.1_paramtrace4_nexp1_v1/seeds1111_gentime05291306.pth.tar
+[1/200], taken (sec): 39.632  : loss 1.754, 	 lossdata 1.754, 	  lossreg 0.000, 	 acc_val 0.436, 	 nll_val 1.576, 	 last_lr 0.020, 	 usebayes: False 
+[10/200], taken (sec): 39.031  : loss 0.468, 	 lossdata 0.468, 	  lossreg 0.000, 	 acc_val 0.814, 	 nll_val 0.558, 	 last_lr 0.100, 	 usebayes: False 
