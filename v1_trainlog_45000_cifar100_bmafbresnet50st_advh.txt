@@ -22,3 +22,6 @@ savepath: ./results/cifar100_tinyimagenet/trainsetcifar100_contextsettinyimagene
 [1/200], taken (sec): 98.844  : loss 4.270, 	 lossdata 4.270, 	  lossreg 0.000, 	 acc_val 0.084, 	 nll_val 3.957, 	 last_lr 0.020, 	 usebayes: False 
 [1/200], taken (sec): 98.898  : loss 4.270, 	 lossdata 4.270, 	  lossreg 0.000, 	 acc_val 0.084, 	 nll_val 3.957, 	 last_lr 0.020, 	 usebayes: False 
 [1/200], taken (sec): 99.070  : loss 4.270, 	 lossdata 4.270, 	  lossreg 0.000, 	 acc_val 0.084, 	 nll_val 3.957, 	 last_lr 0.020, 	 usebayes: False 
+[10/200], taken (sec): 99.141  : loss 1.843, 	 lossdata 1.843, 	  lossreg 0.000, 	 acc_val 0.448, 	 nll_val 2.105, 	 last_lr 0.100, 	 usebayes: False 
+[10/200], taken (sec): 99.267  : loss 1.843, 	 lossdata 1.843, 	  lossreg 0.000, 	 acc_val 0.448, 	 nll_val 2.105, 	 last_lr 0.100, 	 usebayes: False 
+[10/200], taken (sec): 99.256  : loss 1.843, 	 lossdata 1.843, 	  lossreg 0.000, 	 acc_val 0.448, 	 nll_val 2.105, 	 last_lr 0.100, 	 usebayes: False 

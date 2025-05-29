@@ -88,3 +88,9 @@ savepath: ./results/cifar10_cifar100/trainsetcifar10_contextsetcifar100_ntrainse
 [10/200], taken (sec): 50.494  : loss 0.468, 	 lossdata 0.468, 	  lossreg 0.000, 	 acc_val 0.814, 	 nll_val 0.558, 	 last_lr 0.100, 	 usebayes: False 
 [10/200], taken (sec): 50.327  : loss 0.468, 	 lossdata 0.468, 	  lossreg 0.000, 	 acc_val 0.814, 	 nll_val 0.558, 	 last_lr 0.100, 	 usebayes: False 
 [10/200], taken (sec): 50.229  : loss 0.468, 	 lossdata 0.468, 	  lossreg 0.000, 	 acc_val 0.814, 	 nll_val 0.558, 	 last_lr 0.100, 	 usebayes: False 
+[20/200], taken (sec): 67.578  : loss 0.382, 	 lossdata 0.382, 	  lossreg 0.000, 	 acc_val 0.813, 	 nll_val 0.553, 	 last_lr 0.099, 	 usebayes: False 
+[20/200], taken (sec): 67.564  : loss 0.382, 	 lossdata 0.382, 	  lossreg 0.000, 	 acc_val 0.813, 	 nll_val 0.553, 	 last_lr 0.099, 	 usebayes: False 
+[20/200], taken (sec): 67.641  : loss 0.382, 	 lossdata 0.382, 	  lossreg 0.000, 	 acc_val 0.813, 	 nll_val 0.553, 	 last_lr 0.099, 	 usebayes: False 
+[30/200], taken (sec): 59.454  : loss 0.339, 	 lossdata 0.339, 	  lossreg 0.000, 	 acc_val 0.837, 	 nll_val 0.528, 	 last_lr 0.096, 	 usebayes: False 
+[30/200], taken (sec): 58.367  : loss 0.339, 	 lossdata 0.339, 	  lossreg 0.000, 	 acc_val 0.837, 	 nll_val 0.528, 	 last_lr 0.096, 	 usebayes: False 
+[30/200], taken (sec): 57.945  : loss 0.339, 	 lossdata 0.339, 	  lossreg 0.000, 	 acc_val 0.837, 	 nll_val 0.528, 	 last_lr 0.096, 	 usebayes: False 
