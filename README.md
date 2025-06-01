@@ -25,7 +25,7 @@ This is an implemenation for "Effective Function-Space Regularization for Bayesi
                                             --nfsample 10 \
                                             --reglambda 1e-2  \
                                             --nepochratio .7 \
-                                            --mixalpha   0.1  \
+                                            --mixalpha   -4  \
                                             --paramtrace 1 \
                                             --seeds 1111 \
                                             --v 1  ;
@@ -36,7 +36,7 @@ This is an implemenation for "Effective Function-Space Regularization for Bayesi
                                             --modelname bmafbresnet18 \
                                             --reglambda 1e-2 \
                                             --nepochratio .7 \
-                                            --mixalpha   .1  \
+                                            --mixalpha   -4  \
                                             --paramtrace 1 \
                                             --seeds 1111 \
                                             --v 1  ;
