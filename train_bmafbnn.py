@@ -360,31 +360,7 @@ def main(args):
 
     
     ## set epoch list for prior construction
-    # nfreqprint       = configs.exp.nfreqprint            
-    # epochs_for_bayes = int(configs.train.nepoch*configs.train.nepochratio)    
-
-        
-    # if configs.train.paramtrace == 9:
-    #     past_periods, period = 10 , 2
-    #     tmp_list = np.arange( epochs_for_bayes - past_periods, epochs_for_bayes) 
-    #     epochs_for_priorconstruction = [i_tmp for i_tmp in tmp_list if i_tmp % period ==0]
-
-    # if configs.train.paramtrace == 10: ## 1 simlar
-    #     past_periods, period = 20 , 4
-    #     tmp_list = np.arange( epochs_for_bayes - past_periods, epochs_for_bayes) 
-    #     epochs_for_priorconstruction = [i_tmp for i_tmp in tmp_list if i_tmp % period ==0]
-
-    # if configs.train.paramtrace == 11:
-    #     past_periods, period = 30 , 6
-    #     tmp_list = np.arange( epochs_for_bayes - past_periods, epochs_for_bayes ) 
-    #     epochs_for_priorconstruction = [i_tmp for i_tmp in tmp_list if i_tmp % period ==0]    
-
-        
-    # if configs.train.paramtrace == -1:            
-    #     epochs_for_bayes, epochs_for_priorconstruction = 3, [1,2]
-    #     nfreqprint = 1
-
-    #breakpoint()
+   
     nfreqprint                   = configs.exp.nfreqprint            
     epochs_for_bayes             = int(configs.train.nepoch*configs.train.nepochratio)    
     past_periods                 = int(configs.train.nepoch*0.1) 

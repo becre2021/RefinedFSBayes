@@ -47,8 +47,6 @@ omit_keys = ['trainset','contextset','resolution','nfbatch','wdecay','maxgradnor
              'nvalbatch','topk','usepretrain','temppeak','mixself','paramtrace','prescale',
              #'nepochratio','topk',
              ]
-#'priorstdin','priorstdout','usepretrain','useregweight','topk',# 'usepretrain',#,'nepochratio',
-
 
 
 
@@ -108,16 +106,8 @@ def  train_epochs_with_prior(trainloader,contextloader, model, optimizer, loss_f
      
     tmp_loss,loss_list,lossdata_list,lossreg_list = [],[],[],[]
     
-    #for i, ((x, y),(xc,yc)) in enumerate(zip(trainloader,contextloader) ):    
     for i, (x, y) in enumerate(trainloader):    
-        
-        #print('x.shape: {}'.format(x.shape))
-        
-        # compute loss         
-        # logits_samples = model.compute_logit_samples(x.cuda(), 
-        #                                              use_bayes=use_bayes, 
-        #                                              topk=configs.train.topk,
-        #                                              configs=configs)  
+       
 
         logits_samples, h_x = model.compute_logit_samples(x.cuda(), 
                                                           y=y.cuda(),
@@ -244,7 +234,6 @@ def process_priorparamlist_as_swagdiag(prior_parameters_list,configs=None, eps_l
             ith_first_moment.data  += (1/nprior_model)*ith_current.data
             ith_second_moment.data += (1/nprior_model)*torch.pow(ith_current.data,2)
 
-    # updated_p_logstd = [torch.log( torch.sqrt(ith_second_moment - ith_first_moment**2 + eps_log) ).to(ith_first_moment) for ith_first_moment,ith_second_moment in zip(emp_first_moment,emp_second_moment)]
     updated_p_logstd = [torch.log( torch.sqrt( torch.clamp(ith_second_moment - ith_first_moment**2, min=eps_clamp)) ).to(ith_first_moment) for ith_first_moment,ith_second_moment in zip(emp_first_moment,emp_second_moment)]
     updated_p_mean   = emp_first_moment    
     
@@ -258,8 +247,7 @@ def process_priorparamlist_as_swagdiag(prior_parameters_list,configs=None, eps_l
 
 
 
-#tmp_logger_path = './training_log_bmafbnn2_adv3.txt' ##aftersubmit
-tmp_logger_path = './training_log_proposed' ##aftersubmit
+tmp_logger_path = './training_log_proposed'
 
 def write_msg(current_msg:str,withprint=True,tmp_logger_path=tmp_logger_path):
     if withprint:
@@ -289,38 +277,6 @@ def main(args):
     print('update configs: {}'.format(configs))
 
 
-    # ## when nfbatch 512, one epoch is 88 (45000/512) steps, 10000 steps is 113 (10000/88) epochs for cifar10 and cifar100
-
-
-
-    # if configs.train.paramtrace == 0 :    ## fix bayes epochs at v=17                
-    #     steps_per_epochs    =  (configs.dataset.ntrainset // configs.train.nfbatch)        
-    #     total_trainepochs    = (configs.train.nstep // steps_per_epochs) + 1            
-    #     past_periods, period = 10 , 2
-        
-    # if configs.train.paramtrace == 1 :                    
-    #     steps_per_epochs    =  (configs.dataset.ntrainset // configs.train.nfbatch)        
-    #     total_trainepochs    = (configs.train.nstep // steps_per_epochs) + 1            
-    #     past_periods, period = 5, 1
-
-    # if configs.train.paramtrace == 2 :                    
-    #     steps_per_epochs    =  (configs.dataset.ntrainset // configs.train.nfbatch)        
-    #     total_trainepochs    = (configs.train.nstep // steps_per_epochs) + 1            
-    #     past_periods, period = 20 , 4
-
-
-    # ## main
-    # steps_per_epochs    =  (configs.dataset.ntrainset // configs.train.nfbatch)        
-    # total_trainepochs   =  (configs.train.nstep // steps_per_epochs) + 1            
-    # past_periods        =  int(total_trainepochs*0.1)
-    # period              =  2
-
-    # epochs_for_bayes             = int(total_trainepochs*configs.train.nepochratio)
-    # tmp_list                     = np.arange( epochs_for_bayes  - past_periods, epochs_for_bayes ) 
-    # epochs_for_priorconstruction = [i_tmp for i_tmp in tmp_list if i_tmp % period ==0]
-    
-
-
     steps_per_epochs    =  (configs.dataset.ntrainset // configs.train.nfbatch)        
     total_trainepochs   =  (configs.train.nstep // steps_per_epochs) + 1            
 
@@ -333,14 +289,6 @@ def main(args):
     nfreqprint                   = configs.exp.nfreqprint            
 
 
-    # ## for debuggins
-    # steps_per_epochs    =  (configs.dataset.ntrainset // configs.train.nfbatch)        
-    # total_trainepochs   =  (configs.train.nstep // steps_per_epochs) + 1            
-    # past_periods        =  int(total_trainepochs*0.1)
-    # period              =  2
-
-    # # epochs_for_bayes             = 4
-    # # epochs_for_priorconstruction = [2,3,4]
 
     print('-'*100)
     print('total_nepochs:{}, \t epochs_for_bayes:{}, \t epochs_for_priorconstruction: {}'.format(total_trainepochs,epochs_for_bayes,epochs_for_priorconstruction))
@@ -441,8 +389,6 @@ def main(args):
         nmultiple = int(accumulated_nstep  / outs_train.nstep)        
         if  (nmultiple % nfreqprint) == 0 or ( nmultiple == 1) or (accumulated_nstep > configs.train.nstep) :        
             
-            # evaluate model on training set
-            # outs_eval_val = eval_trainedmodel(valloader, model , q_params = list(model.parameters()), use_bayes=True, nfsample= configs.train.nfsample, topk=configs.train.topk)
             outs_eval_val = eval_trainedmodel(valloader, model , q_params = list(model.parameters()), use_bayes=use_bayes, nfsample= configs.train.nfsample)
 
             acc_val       =  get_acc(outs_eval_val.pred_list.cpu().data.numpy(),outs_eval_val.label_list.cpu().data.numpy())
@@ -468,19 +414,9 @@ def main(args):
             
             
             if (opt_val_nll > nll_val) and use_bayes:
-            #if opt_val_nll > nll_val :
             
                 opt_val_nll = nll_val                 
-                # save_dict = {'args':args,
-                #              'configs':configs,
-                #              'metrics':metrics,
-                #              'state_dict': model.state_dict(),
-                #              'optimizer_dict': model.state_dict(),
-                #              'acc_val':acc_val,
-                #              'nll_val':nll_val,      
-                #              'accm_nstep':accumulated_nstep,
-                #}
-                
+      
                 save_dict = {'args':args,
                              'configs':configs,
                              'state_dict': model.state_dict(),
