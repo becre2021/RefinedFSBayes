@@ -4,39 +4,43 @@ This is an implemenation for "Effective Function-Space Regularization for Bayesi
 
 
 
-## Description for implementation
+## Description for main implementation
 
+- `models_deepnet.py`: MAP and proposed ResNet models.
+- `models_vit.py`: ViT models for transfer learning.
+- `train_bmafbnn.py`: Train R-FVI with last-layer stochastic ResNets.
+- `train_bmafbnn_st.py`: Train R-FVI with fully stochastic ResNets.
+- `train_vit_bmafbnn.py`: Train R-FVI with last-layer stochastic ViTs.
 
-* example_twomoon_main.ipynb      : describe the construction of the proposed distribution on Two-moon sets 
-* example_ablation_proposed.ipynb : investigate the sensitiviy across varying trajectory on Cifar-10 with ResNet 18 
+## Example to run code
 
-* models_deepnet.py     : classification algorithms  
-* models_vit.py         : transfer learning algorithms for VIT 
-* models_regression.py  : regression algorithms 
-* train_v4_bmafbnn_adv_hidden.py  : train R-FVI with informative priors for classification
+Set the project directory and GPU. Python bytecode files are disabled.
 
+```bash
+export PYTHONDONTWRITEBYTECODE=1
+export CUDA_VISIBLE_DEVICES=0
+```
 
+Train fully stochastic ResNet18 on CIFAR-10
 
+```bash
+bash run_resnet18st_seed1111.sh
+```
 
-## Example to run code 
-    # BNNs (all layers are  stochastic)
-    python3 train_v4_bmafbnn_adv_hidden.py  --configs ./exp_cifar10_cifar100 \
-                                            --modelname bmafbresnet18st \
-                                            --nfsample 10 \
-                                            --reglambda 1e-2  \
-                                            --nepochratio .7 \
-                                            --mixalpha   -4  \
-                                            --paramtrace 1 \
-                                            --seeds 1111 \
-                                            --v 1  ;
+Train fully stochastic ResNet50 on CIFAR-100
 
+```bash
+bash run_resnet50st_seed1111.sh
+```
 
-    # last-layer BNNs (the last-layer is only stochastic)
-    python3 train_v4_bmafbnn_adv_hidden.py  --configs ./exp_cifar10_cifar100 \
-                                            --modelname bmafbresnet18 \
-                                            --reglambda 1e-2 \
-                                            --nepochratio .7 \
-                                            --mixalpha   -4  \
-                                            --paramtrace 1 \
-                                            --seeds 1111 \
-                                            --v 1  ;
+Train ViT MAP on DTD 
+
+```bash
+bash run_vit_map_seed1111.sh
+```
+
+Train the proposed ViT method on DTD
+
+```bash
+bash run_vit_proposed_seed1111.sh
+```

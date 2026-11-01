@@ -1,0 +1,31 @@
+# Previous experiment settings. Source: /home/yohan/project_research/emp_fbnn_new/src_resnet_new/results/statistics/runs_cifar10/bmafbnn_st_parallel_20261027_011322/v2000_bmafbresnet18st_seed1111_logstd-9_reg1e-4_mix0.1_prior1.ood.json
+dataset:
+  ntrainset: 45000
+  trainset: cifar10
+  contextset: cifar100
+  oodset: svhn2
+model:
+  modelname: bmafbresnet18st
+  in_dim: 3
+  out_dim: 10
+  hidden_dim: None
+  scalelogstd: -9
+  priorstdout: 1.0
+train:
+  nepoch: 200
+  nbatch: 128
+  nwarmupepoch: 10
+  lr: 0.1
+  Tmax: 200
+  nctset: 4
+  reglambda: 0.0001
+  nfsample: 10
+  nepochratio: 0.75
+  losstype: elbo
+  mixalpha: 0.1
+  eval_train: false
+exp:
+  nexp: 1
+  seeds: 1111
+  nfreqprint: 10
+  v: 1

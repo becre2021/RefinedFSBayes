@@ -20,8 +20,8 @@ import argparse
 import time
 from time import gmtime, strftime
 
-from datasets_v2 import setup_dataset
-from models_deepnet_v4 import *
+from datasets_resnet import setup_dataset
+from models_deepnet import *
 
 
 from math import pi
@@ -261,7 +261,7 @@ def train_epochs(trainloader,contextloader, model, optimizer, loss_fn, scheduler
 
 
 
-def eval_trainedmodel(dataloader, model,q_params = None ,topk=1, nfsample=1):
+def eval_trainedmodel(dataloader, model,q_params = None , nfsample=1):
     assert q_params is not None
     pred_list,label_list,logit_list = [],[],[]    
 
@@ -402,7 +402,7 @@ def get_results_from_outs(outs,outs_ood,n_runs=5,n_splits=2,digits=3):
 
 
 
-def get_results_from_outs_without_calibration(outs,outs_ood1):
+def get_results_from_outs_without_calibration(outs,outs_ood1,n_runs=5,n_splits=2,digits=3):
     
     
     def _compute_logmarginalprob(logits):
@@ -610,8 +610,8 @@ def main(args):
     
     
     for nfsample in nfsample_list:
-        outs_test = eval_trainedmodel(testloader, model, q_params = list(model.parameters())  ,topk=configs.train.topk, nfsample= nfsample)    
-        outs_ood  = eval_trainedmodel(oodloader, model, q_params   = list(model.parameters())   ,topk=configs.train.topk, nfsample= nfsample)       
+        outs_test = eval_trainedmodel(testloader, model, q_params = list(model.parameters())  , nfsample= nfsample)    
+        outs_ood  = eval_trainedmodel(oodloader, model, q_params   = list(model.parameters())   , nfsample= nfsample)       
         
         
         acc,nll,ece,aucroc1,indent1,outdent1,fdivin,fdivout,rfdivin,rfdivout = get_results_from_outs_without_calibration(outs_test,outs_ood)
@@ -658,7 +658,7 @@ if __name__ == "__main__":
     
     parser.add_argument('--nexp',type=int, default=1)       
     parser.add_argument('--configs',type=str, default='abc')    
-    parser.add_argument('--modelname',type=str, default='resnet20')    
+    parser.add_argument('--modelname',type=str, default='resnet18', choices=['resnet18', 'resnet50'])    
     parser.add_argument('--reglambda',type=float, default=.1)    
     parser.add_argument('--scalelogstd',type=int, default=-8)      
     parser.add_argument('--nctset',type=int, default=1)        
@@ -684,7 +684,6 @@ if __name__ == "__main__":
 
 
 ## resnet20 via spectral normalization
-# CUDA_VISIBLE_DEVICES=$DEVICES python3 train_base.py   --modelname res2net20  --configs ./exp_cifar10_cifar100  --nexp $nchosenexp --reglambda  1e-2 --seeds 1111 --v 91 ; #use jacobian directly 
 
 # CUDA_VISIBLE_DEVICES=$DEVICES python3 train_icmlreb_base.py    --configs  ./exp_cifar100_tinyimagenet\
 #                                                                 --modelname $modelname \

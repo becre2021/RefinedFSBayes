@@ -39,7 +39,7 @@ nanstd_val = 1e-2
 
 
 def transform_logstd(logstd):
-    return 1e-6 + F.softplus(logstd, beta=1, threshold=20)
+    return F.softplus(logstd, beta=1, threshold=20)
 
 
 def build_MVN_Low(params:list , asprior=True):
@@ -1727,8 +1727,6 @@ class FBNN_RPAwareclscat_Base(FBNN_Base):
             indist_score = self.static_mh.compute_indist_score_batch( h_list , datatype = datatype )              
             #breakpoint()
             # reflect in-distribution prior on function space inference
-            #stdonfs = stdonfs*indist_score        #v11  --> failed, learnable together, --> inscore x == inscore xc 라는 결과가나옴,      
-            #stdonfs = stdonfs*(1 + indist_score)   #v12  --> failed, learnable together, --> inscore x == 이또한 inscore xc 라는 결과가나옴,          
             #stdonfs = stdonfs*(1 + indist_score.detach().clone())   #v13  -->
             ## -----------------------------------------------------------------------------------------------------------
             #stdonfs = stdonfs*(1 + indist_score.detach().clone())   #v13  -->

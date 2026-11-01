@@ -1,0 +1,39 @@
+# Previous experiment settings. Source: /home/yohan/project_research/emp_fbnn_new/src_vit_new_new/ablation_runs/trajectory_20261010_151855_1276216/results_table_dtd.csv
+dataset:
+  contextset: tinyimagenet
+  ntrainset: 3384
+  oodset: svhn
+  resolution: 224
+  trainset: dtd
+model:
+  hiddendim: None
+  indim: 3
+  infer: vbp
+  modelname: vitbp16r224
+  outdim: 47
+  pretrained: true
+  priorstdout: 10.0
+  scalelogstd: -4
+train:
+  losstype: elbo
+  lr: 0.01
+  maxgradnorm: 1.0
+  mixalpha: 1.0
+  mixself: false
+  nbatch: 32
+  nctset: 4
+  nepochratio: 0.66
+  nfbatch: 128
+  nfsample: 10
+  nstep: 2000
+  nvalbatch: 64
+  paramtrace: 0
+  prscale: 1e1
+  reglambda: 1.0e-05
+  updateperiod: 1
+  usepretrain: false
+  wdecay: 0.0
+exp:
+  nexp: 1
+  seeds: 1111
+  v: 1

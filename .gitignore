@@ -1,0 +1,5 @@
+# Local experiment outputs
+reproducibility/
+results/
+*.log
+*log*.txt

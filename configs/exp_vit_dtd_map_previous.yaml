@@ -1,0 +1,40 @@
+# Previous experiment settings. Source: /home/yohan/project_research/emp_fbnn_new/src_vit_new_new/baseline_evaluation_results/full_8e9618465cd9/per_checkpoint/6cb8d1a618a204eb.json
+dataset:
+  ntrainset: 3384
+  trainset: dtd
+  contextset: tinyimagenet
+  oodset: svhn
+  resolution: 224
+model:
+  modelname: vitbp16r224
+  pretrained: true
+  infer: map
+  indim: 3
+  outdim: 47
+  hiddendim: None
+  scalelogstd: -8
+  priorstdout: 10
+train:
+  nstep: 2000
+  nbatch: 32
+  nfbatch: 128
+  nvalbatch: 64
+  lr: 1e-2
+  wdecay: 0.0
+  reglambda: 1.0e-05
+  nfsample: 1
+  updateperiod: 1
+  nepochratio: 0.5
+  maxgradnorm: 1.0
+  nctset: 1
+  losstype: elbo
+  usepretrain: false
+  mixself: false
+  mixalpha: 0.0
+  paramtrace: 0
+  prscale: 1e1
+exp:
+  nexp: 1
+  seeds: 1111
+  nfreqprint: 5
+  v: 1

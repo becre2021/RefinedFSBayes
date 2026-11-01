@@ -1,0 +1,60 @@
+dataset: 
+    ntrainset: 3384  
+    trainset: dtd
+    contextset: tinyimagenet
+    oodset: svhn
+    resolution: 224
+
+model: 
+    modelname: vitbp16r224 # cnn,fbcnn,fbcnnlast
+    pretrained: True
+    infer: map
+    indim: 3
+    outdim: 47
+    hiddendim: None
+    scalelogstd: -6
+    
+    priorstdout: 10
+    
+train:
+    #nepoch: 300  
+
+    nstep: 1000  # vit uses steps instead of epoch
+    nbatch: 32
+    nfbatch: 128
+
+    nvalbatch: 64
+
+    ##lr in [1e-2,3e-2]
+    #lr: 3e-2
+    lr: 1e-2 # # is chosne 
+    
+
+
+    wdecay: 0.
+    reglambda: 1e-4
+
+    nfsample: 1
+    updateperiod: 1
+    nepochratio: .5
+    maxgradnorm: 1.
+
+    nctset: 4
+    losstype: elbo    
+
+    usepretrain: False
+    mixself : False
+    mixalpha: 0.0
+
+    paramtrace: 0
+    prscale: 1e1
+
+exp:
+    nexp: 1
+    seeds: 1111
+    nfreqprint: 5
+    v: 1
+    
+
+
+

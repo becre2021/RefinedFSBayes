@@ -1,0 +1,35 @@
+# Recorded configuration C01: highest reported regularized mean accuracy (0.792).
+# Source: emp_fbnn_new/src_resnet_new/statistics/runs_cifar100/results_merged_configs.json
+# Historical seed 1111 test accuracy: 0.795; 200 epochs, 10 evaluation samples.
+dataset:
+  ntrainset: 45000
+  trainset: cifar100
+  contextset: tinyimagenet
+  oodset: svhn2
+model:
+  modelname: bmafbresnet50st
+  in_dim: 3
+  out_dim: 100
+  hidden_dim: None
+  scalelogstd: -9
+  priorstdout: 10.0
+  swagrank: 5
+  swagper: 1
+train:
+  nepoch: 200
+  nbatch: 128
+  nwarmupepoch: 10
+  lr: 0.1
+  Tmax: 200
+  nctset: 4
+  reglambda: 0.001
+  nfsample: 10
+  nepochratio: 0.75
+  losstype: elbo
+  mixalpha: 0.1
+  eval_train: false
+exp:
+  nexp: 1
+  seeds: 1111
+  nfreqprint: 10
+  v: 1003

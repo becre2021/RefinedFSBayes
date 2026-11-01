@@ -10,9 +10,7 @@ model:
     out_dim: 10
     hidden_dim: None
     scalelogstd: -6    
-    priorstdin: 1
     priorstdout: 10
-    temppeak: 1.
 
     
 train:
@@ -27,7 +25,6 @@ train:
     updateperiod: 1
     nepochratio: .8
     usepretrain: False
-    topk: 10
     losstype: elbo
     mixalpha: 0.05
 
