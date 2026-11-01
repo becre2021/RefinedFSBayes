@@ -24,23 +24,23 @@ export CUDA_VISIBLE_DEVICES=0
 Train fully stochastic ResNet18 on CIFAR-10
 
 ```bash
-bash run_resnet18st_seed1111.sh
+bash bash_resnet18st.sh
 ```
 
 Train fully stochastic ResNet50 on CIFAR-100
 
 ```bash
-bash run_resnet50st_seed1111.sh
+bash bash_resnet50st.sh
 ```
 
 Train ViT MAP on DTD 
 
 ```bash
-bash run_vit_map_seed1111.sh
+bash bash_vit_map.sh
 ```
 
 Train the proposed ViT method on DTD
 
 ```bash
-bash run_vit_proposed_seed1111.sh
+bash bash_vit_proposed.sh
 ```
