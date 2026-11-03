@@ -1023,8 +1023,9 @@ class VisionTransformer_Bayes_Proposed(VisionTransformer):
         f_mean             = self.func_model(param_p_mean, proj_ht)
 
 
-        param_p_std        = [transform_logstd(ith_q_logstd) for ith_q_logstd in param_p_logstd ]                
-        # param_p_std = [10 * transform_logstd(ith_q_logstd) for ith_q_logstd in param_p_logstd]  # Outer variance factor = 100 (including bias)
+        # param_p_std        = [transform_logstd(ith_q_logstd) for ith_q_logstd in param_p_logstd ]                
+        param_p_std = [(10 ** 0.5) * transform_logstd(ith_q_logstd) for ith_q_logstd in param_p_logstd]  
+        
         f_var_linear_inner = self.priorstdout*(param_p_std[0][None,...])*((m_qx - proj_ht)[:,None,:]) #(1,ydim,nparams)*(nb,1,nparams) = (nb,ydim,nparams)
         f_var_linear       = torch.pow(f_var_linear_inner,2).sum(dim=-1) #(nb,ydim)
         f_var_linear      += torch.pow((param_p_std[0][None,...])*(m_qx[:,None,:]),2).sum(dim=-1)
