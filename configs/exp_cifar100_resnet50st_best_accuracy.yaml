@@ -1,6 +1,5 @@
-# Recorded configuration C01: highest reported regularized mean accuracy (0.792).
-# Source: emp_fbnn_new/src_resnet_new/statistics/runs_cifar100/results_merged_configs.json
-# Historical seed 1111 test accuracy: 0.795; 200 epochs, 10 evaluation samples.
+# Selected run: version=1793707937; results/resnet50st_reg1e-4_seed1111_1793707937/results.json
+# Seed 1111, 10 evaluation samples: accuracy=0.7964, NLL=0.8002, ECE=0.0446.
 dataset:
   ntrainset: 45000
   trainset: cifar100
@@ -11,7 +10,7 @@ model:
   in_dim: 3
   out_dim: 100
   hidden_dim: None
-  scalelogstd: -9
+  scalelogstd: -10
   priorstdout: 10.0
   swagrank: 5
   swagper: 1
@@ -22,7 +21,7 @@ train:
   lr: 0.1
   Tmax: 200
   nctset: 4
-  reglambda: 0.001
+  reglambda: 0.0001
   nfsample: 10
   nepochratio: 0.75
   losstype: elbo
