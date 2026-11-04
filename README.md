@@ -33,13 +33,13 @@ Train fully stochastic ResNet50 on CIFAR-100
 bash bash_resnet50st.sh
 ```
 
-Train ViT MAP on DTD 
+Train ViT MAP on DTD, then evaluate its best validation-NLL checkpoint and refresh the result tables.
 
 ```bash
 bash bash_vit_map.sh
 ```
 
-Train the proposed ViT method on DTD
+Train the proposed ViT method on DTD, then evaluate each completed configuration and refresh the result tables.
 
 ```bash
 bash bash_vit_proposed.sh

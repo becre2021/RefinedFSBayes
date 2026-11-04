@@ -201,3 +201,19 @@ def update_configs_by_args(args):
     return configs
 
 
+
+
+def write_checkpoint_manifest(path, checkpoints):
+    """Publish exact best-checkpoint paths after successful training."""
+    import json
+    from pathlib import Path
+    if path is None:
+        return
+    resolved = [Path(checkpoint).resolve() for checkpoint in checkpoints]
+    if not resolved or any(not checkpoint.is_file() for checkpoint in resolved):
+        raise FileNotFoundError('Training did not produce all expected best checkpoints')
+    destination = Path(path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_suffix(destination.suffix + '.tmp')
+    temporary.write_text(json.dumps({'checkpoints': [str(p) for p in resolved]}, indent=2) + '\n')
+    temporary.replace(destination)

@@ -301,7 +301,7 @@ def get_ood_auroc(preds, targets, ood_targets, criterion='entropy', topk=1, **ar
         raise NotImplementedError
 
    #return auroc(misclassification_targets, criterion_values)
-    return auroc(ood_targets, criterion_values).round(3)
+    return round(float(auroc(ood_targets, criterion_values)), 3)
 
 
 def get_ood_auroc2(preds, ood_targets, criterion='entropy', topk=1, **args):
@@ -317,7 +317,7 @@ def get_ood_auroc2(preds, ood_targets, criterion='entropy', topk=1, **args):
         raise NotImplementedError
 
    #return auroc(misclassification_targets, criterion_values)
-    return auroc(ood_targets, criterion_values).round(3)
+    return round(float(auroc(ood_targets, criterion_values)), 3)
 
 
 

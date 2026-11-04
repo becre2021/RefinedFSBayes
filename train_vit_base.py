@@ -1,3 +1,4 @@
+from train_utils import write_checkpoint_manifest
 import yaml
 import random
 import numpy as np
@@ -283,7 +284,9 @@ def main(args):
     
     
     
-    return 
+    if opt_val_nll >= 1e8 or not os.path.isfile(savepath):
+        raise RuntimeError('Training completed without a best validation checkpoint')
+    return savepath
     
 
 
@@ -314,6 +317,7 @@ if __name__ == "__main__":
     parser.add_argument('--seeds',type=int, default=1111)        
           
     
+    parser.add_argument('--checkpoint-manifest', help='write best-checkpoint paths for post-training evaluation')
     args = parser.parse_args()
     args.gentime = strftime("%m%d%H%M",gmtime()) 
     
@@ -321,9 +325,12 @@ if __name__ == "__main__":
 
     #print(args.nepoch)
     
+    completed_checkpoints = []
     for k in range(args.nexp):
-        main(args)
+        completed_checkpoints.append(main(args))
         args.seeds += 1
         
         
 
+
+    write_checkpoint_manifest(args.checkpoint_manifest, completed_checkpoints)

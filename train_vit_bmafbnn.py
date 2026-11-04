@@ -1,3 +1,4 @@
+from train_utils import write_checkpoint_manifest
 import yaml
 import random
 import numpy as np
@@ -274,6 +275,9 @@ def main(args):
                                 
     ## get and update configs
     configs = update_configs_by_args(args)
+    configs['exp'].setdefault('nfreqprint', 5)
+    if type(configs.exp.nfreqprint) is not int or configs.exp.nfreqprint < 1:
+        raise ValueError('exp.nfreqprint must be a positive integer')
     print('update configs: {}'.format(configs))
 
 
@@ -447,7 +451,9 @@ def main(args):
     
     
     #print('\n'*3)
-    return 
+    if opt_val_nll >= 1e8 or not os.path.isfile(savepath):
+        raise RuntimeError('Training completed without a best validation checkpoint')
+    return savepath
 
 
 
@@ -488,14 +494,18 @@ if __name__ == "__main__":
     
 
         
+    parser.add_argument('--checkpoint-manifest', help='write best-checkpoint paths for post-training evaluation')
     args = parser.parse_args()
     args.gentime = strftime("%m%d%H%M",gmtime()) 
 
     #print(args.nepoch)
     
+    completed_checkpoints = []
     for k in range(args.nexp):
-        main(args)
+        completed_checkpoints.append(main(args))
         args.seeds += 1
         
         
 
+
+    write_checkpoint_manifest(args.checkpoint_manifest, completed_checkpoints)

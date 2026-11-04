@@ -152,10 +152,12 @@ def trajectory_description(configs):
 
 
 def summarize(paths, expected_seeds, sample_counts, ddof=0):
-    if len(set(expected_seeds)) != len(expected_seeds) or len(expected_seeds) < 2:
-        raise ValueError('Expected seeds must contain at least two distinct values')
+    if not expected_seeds or len(set(expected_seeds)) != len(expected_seeds):
+        raise ValueError('Expected seeds must contain at least one value and no duplicates')
     if ddof not in (0, 1):
         raise ValueError('ddof must be 0 or 1')
+    if len(expected_seeds) <= ddof:
+        raise ValueError('Sample standard deviation requires at least two seeds; use ddof=0 for a single seed')
     groups = {}
     for path in paths:
         record = json.loads(Path(path).read_text())
@@ -221,7 +223,7 @@ def summarize(paths, expected_seeds, sample_counts, ddof=0):
 
 
 def write_tables(rows, output_prefix, method_label=None, append=False, run_label=None):
-    """Write each seed followed by a final, copyable LaTeX mean/std row."""
+    """Write each seed, adding a LaTeX mean/std row only for multiple seeds."""
     if not rows:
         raise ValueError('No experiment results found')
     output = Path(output_prefix).with_suffix('.txt')
@@ -236,6 +238,9 @@ def write_tables(rows, output_prefix, method_label=None, append=False, run_label
         model = row['model']
         if method_label:
             method = method_label
+        elif model.startswith('vit'):
+            infer = json.loads(row['experiment_json'])['configs']['model'].get('infer')
+            method = 'MAP' if infer == 'map' else 'R-FVI (last layer)'
         elif model.startswith('bmafb'):
             method = 'BMA-FBNN-ST' if model.endswith('st') else 'BMA-FBNN'
         elif model in ('resnet18', 'resnet50', 'resnet20'):
@@ -256,12 +261,13 @@ def write_tables(rows, output_prefix, method_label=None, append=False, run_label
         for seed, values in row['seed_values'].items():
             cells = [f'${values[name]:.3f}$' if name in values else '--' for name in METRIC_LABELS]
             lines.append(' & '.join([f'{method} (seed={seed})', str(row['nepoch']), *cells]) + r' \\')
-        summary = [
-            f"${row[f'{name}_mean']:.3f} \\pm {row[f'{name}_std']:.3f}$"
-            if row[f'{name}_mean'] != '' else '--'
-            for name in METRIC_LABELS
-        ]
-        lines.append(' & '.join([method, str(row['nepoch']), *summary]) + r' \\')
+        if len(row['seed_values']) > 1:
+            summary = [
+                f"${row[f'{name}_mean']:.3f} \\pm {row[f'{name}_std']:.3f}$"
+                if row[f'{name}_mean'] != '' else '--'
+                for name in METRIC_LABELS
+            ]
+            lines.append(' & '.join([method, str(row['nepoch']), *summary]) + r' \\')
     text = '\n'.join(lines) + '\n'
     with output.open('a+' if append else 'w') as stream:
         fcntl.flock(stream.fileno(), fcntl.LOCK_EX)
