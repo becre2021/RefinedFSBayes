@@ -8,7 +8,7 @@ GPU_IDS="${CUDA_VISIBLE_DEVICES:-0}"
 PYTHONDONTWRITEBYTECODE="${PYTHONDONTWRITEBYTECODE:-1}"
 RUN_VERSION="${RUN_VERSION:-$(date +%s)}"
 TRAIN_SCRIPT="train_vit_base.py"
-CONFIGS="./configs/exp_vit_dtd_map_previous"  # Without .yaml
+CONFIGS="./configs/exp_vit_dtd_map"  # Without .yaml
 MODELNAME="vitbp16r224"
 RUN_NAME="vit_dtd_map"
 

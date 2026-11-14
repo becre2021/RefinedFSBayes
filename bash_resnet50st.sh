@@ -8,7 +8,7 @@ GPU_IDS="${CUDA_VISIBLE_DEVICES:-0}"
 PYTHONDONTWRITEBYTECODE="${PYTHONDONTWRITEBYTECODE:-1}"
 RUN_VERSION="${RUN_VERSION:-$(date +%s)}"
 TRAIN_SCRIPT="train_bmafbnn_st.py"
-CONFIGS="./configs/exp_cifar100_resnet50st_best_accuracy"  # Without .yaml
+CONFIGS="./configs/exp_cifar100_resnet50st"  # Without .yaml
 MODELNAME="bmafbresnet50st"
 RUN_NAME="resnet50st"
 
