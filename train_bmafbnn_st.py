@@ -59,6 +59,10 @@ def off_random_sample(m):
     return
 
 
+# On JPUShare only /output is collected after the job; locally this stays '.'.
+OUTPUT_ROOT = os.environ.get('JOB_OUTPUT_DIR', '.')
+
+
 def setup_savedir(configs:AttrDict, gentime:str, omit_keys =omit_keys ):
     
     def setup_savepath(configs, omit_keys =omit_keys):
@@ -75,10 +79,10 @@ def setup_savedir(configs:AttrDict, gentime:str, omit_keys =omit_keys ):
             full_name += tmp_name        
         return full_name[:-1]
     
-    savedir = './results/{}_{}/{}/'.format(configs.dataset.trainset,configs.dataset.contextset,setup_savepath(configs))
-    
+    results_root = os.path.join(OUTPUT_ROOT, 'results')
     if 'prior_distribution' in configs.train:
-        savedir = savedir.replace('./results/', './results/ablation_' + configs.train.prior_distribution + '/', 1)
+        results_root = os.path.join(results_root, 'ablation_' + configs.train.prior_distribution)
+    savedir = os.path.join(results_root, '{}_{}'.format(configs.dataset.trainset,configs.dataset.contextset), setup_savepath(configs)) + '/'
 
     # 1 if os.path.isdir(savedir) else os.makedirs(savedir)    
     
@@ -227,8 +231,8 @@ def  train_epochs_with_prior(trainloader,contextloader, model, optimizer, loss_f
         lossdata_list.append(loss_data.item())        
         lossreg_list.append(loss_reg.item())
         memory_list.append(memory_gpu)
-        # empty cuda
-        torch.cuda.empty_cache()        
+        # empty cuda (disabled: per-step call forces sync/realloc and slows training)
+        # torch.cuda.empty_cache()
 
         
     outs = AttrDict()
@@ -261,7 +265,7 @@ def eval_trainedmodel(dataloader, model,q_params = None , use_bayes=False, nfsam
             logit_list.append(outs.logits.cpu())      
 
 
-            torch.cuda.empty_cache() 
+            # torch.cuda.empty_cache()
     
     pred_list = torch.cat(pred_list,dim=0)    
     label_list = torch.cat(label_list,dim=0)    
@@ -398,8 +402,8 @@ def main(args):
     
     
     # set savepath
-    tmp_logger_path = './v{}_seed{}_trainlog_{}_{}new.txt'.format(configs.exp.v,configs.exp.seeds,configs.dataset.trainset,configs.model.modelname)  #retrain
-    tmp_test_path   = './totalresults_{}_{}new.txt'.format(configs.dataset.trainset,configs.model.modelname)  #retrain
+    tmp_logger_path = os.path.join(OUTPUT_ROOT, 'v{}_seed{}_trainlog_{}_{}new.txt'.format(configs.exp.v,configs.exp.seeds,configs.dataset.trainset,configs.model.modelname))  #retrain
+    tmp_test_path   = os.path.join(OUTPUT_ROOT, 'totalresults_{}_{}new.txt'.format(configs.dataset.trainset,configs.model.modelname))  #retrain
 
 
 
@@ -604,7 +608,7 @@ def evaluate_saved_checkpoint(savepath, args, model, testloader, oodloaders, con
     oodsets = list(oodloaders)
     if metrics is None:
         metrics = save_dict.get('metrics', [])
-    tmp_test_path = './totalresults_{}_{}new.txt'.format(configs.dataset.trainset, configs.model.modelname)
+    tmp_test_path = os.path.join(OUTPUT_ROOT, 'totalresults_{}_{}new.txt'.format(configs.dataset.trainset, configs.model.modelname))
     model.load_state_dict(save_dict['state_dict'])
 
 

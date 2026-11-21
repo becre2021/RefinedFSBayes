@@ -53,10 +53,33 @@ Set root to point to the Train/Test folders.
 ## ---------------------------
 # main sets
 ## ---------------------------          
-num_workers=8      
+num_workers=1      
 #num_workers=4      
 
-abs_path = os.path.expanduser('~/')      
+def _resolve_data_root():
+    """Return a root such that abs_path + 'Datasets/<NAME>' exists.
+
+    On JPUShare the input channel 'datasets' is mounted at $JOB_CHANNEL_DATASETS.
+    If the channel already contains a 'Datasets/' folder, use it directly;
+    otherwise (channel root holds CIFAR10/, SVHN/, ...) expose it as
+    <scratch>/data_root/Datasets via a symlink. Locally falls back to '~/'.
+    """
+    channel = os.environ.get('JOB_CHANNEL_DATASETS')
+    if not channel:
+        return os.path.expanduser('~/')
+    if os.path.isdir(os.path.join(channel, 'Datasets')):
+        return channel.rstrip('/') + '/'
+    root = os.path.join(os.environ.get('JOB_SCRATCH_DIR', '/tmp'), 'data_root')
+    os.makedirs(root, exist_ok=True)
+    link = os.path.join(root, 'Datasets')
+    try:
+        os.symlink(channel, link)
+    except FileExistsError:
+        pass
+    return root + '/'
+
+
+abs_path = _resolve_data_root()
 
     
 
@@ -129,7 +152,6 @@ def _setup_mainset(configs: AttrDict):
     if configs.dataset.trainset == 'tinyimagenet':
         DATA_DIR  = abs_path +'Datasets/tiny-imagenet-200'
         TRAIN_DIR = os.path.join(DATA_DIR, 'train') 
-        #VALID_DIR = os.path.join(DATA_DIR, 'val')
         TEST_DIR = os.path.join(DATA_DIR, 'test') 
         
         
@@ -195,15 +217,11 @@ def _setup_mainset(configs: AttrDict):
 
         DATA_DIR  = abs_path +'Datasets/tiny-imagenet-200'
         TRAIN_DIR = os.path.join(DATA_DIR, 'train') 
-        VALID_DIR = os.path.join(DATA_DIR, 'val')  ## label
-        #TEST_DIR = os.path.join(DATA_DIR, 'test') ##no label
+        VALID_DIR = os.path.join(DATA_DIR, 'val')  
         
         
         image_size = 64
-        #image_mean,image_std = [0.5, 0.5, 0.5], [0.5, 0.5, 0.5] ##v910
-        #image_mean,image_std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]  ##v920
-        image_mean,image_std = [0.5, 0.5, 0.5], [0.5, 0.5, 0.5] ##v930, nb 256
-
+        image_mean,image_std = [0.5, 0.5, 0.5], [0.5, 0.5, 0.5] 
 
         n_classes = 200
         train_transform = transforms.Compose([
