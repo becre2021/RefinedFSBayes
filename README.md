@@ -1,6 +1,6 @@
-## Effective Function-Space Regularization for Bayesian Neural Networks via Learning Trajectories
+## Empirical Bayes Function-Space Regularization for Bayesian Neural Networks via Learning Trajectories
 
-This is an implemenation for "Effective Function-Space Regularization for Bayesian Neural Networks via Learning Trajectories"
+This is an implemenation for "Empirical Bayes Function-Space Regularization for Bayesian Neural Networks via LearningTrajectories".
 
 
 
